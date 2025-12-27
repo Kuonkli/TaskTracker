@@ -22,11 +22,9 @@ pipeline {
             steps {
                 sh '''
                     # Создаем файлы с правильными правами
-                    sudo -u docker-runner bash -c "
-                        cp '$ENV_FILE' server/.env
-                        cp '$ENV_FILE' .env
-                        chmod 600 server/.env .env
-                    "
+                    sudo -u docker-runner cp "$ENV_FILE" server/.env
+                    sudo -u docker-runner cp "$ENV_FILE" .env
+                    chmod 600 server/.env .env
                 '''
             }
         }
