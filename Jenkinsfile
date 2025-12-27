@@ -24,7 +24,7 @@ pipeline {
                     echo "🎯 ==================================="
                     echo "🎯 WEBHOOK TRIGGERED BUILD!"
                     echo "🎯 ==================================="
-                    
+
                     // Выводим информацию о триггере
                     def causes = currentBuild.getBuildCauses()
                     causes.each { cause ->
