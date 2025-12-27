@@ -2,20 +2,30 @@ pipeline {
     agent any
 
     stages {
-        stage('Test') {
-            steps {
-                sh '''
-                    echo "🧪 Тестируем..."
-                    echo "Пользователь: $(whoami)"
-                    id
+        stage('Security Check') {
+                    steps {
+                        sh '''
+                            echo "🔒 ТЕКУЩАЯ БЕЗОПАСНОСТЬ:"
+                            echo "Пользователь: $(whoami)"
+                            id
 
-                    # Эта команда НЕ должна работать
-                    docker version && echo "❌ ОПАСНО: есть доступ к Docker!" || echo "✅ БЕЗОПАСНО: нет доступа к Docker"
+                            echo ""
+                            echo "=== Доступ jenkins к Docker ==="
+                            if docker ps >/dev/null 2>&1; then
+                                echo "❌ ОПАСНО: jenkins имеет прямой доступ!"
+                            else
+                                echo "✅ БЕЗОПАСНО: jenkins НЕ имеет прямого доступа"
+                            fi
 
-                    # А эта покажет версию (но не значит что есть доступ)
-                    docker compose version
-                '''
-            }
-        }
+                            echo ""
+                            echo "=== Доступ docker-runner к Docker ==="
+                            if sudo -u docker-runner docker ps >/dev/null 2>&1; then
+                                echo "✅ docker-runner имеет доступ"
+                            else
+                                echo "❌ docker-runner не имеет доступа"
+                            fi
+                        '''
+                    }
+                }
     }
 }
