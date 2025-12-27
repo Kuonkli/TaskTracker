@@ -38,6 +38,7 @@ out/
 .env.development.local
 .env.test.local
 .env.production.local
+/k8s
 
 # Кэш и временные файлы
 .cache/
