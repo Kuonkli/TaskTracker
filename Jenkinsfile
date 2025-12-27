@@ -18,49 +18,92 @@ pipeline {
     }
 
     stages {
-        stage('Webhook Test') {
-            steps {
-                script {
-                    echo "🎯 ==================================="
-                    echo "🎯 WEBHOOK TRIGGERED BUILD!"
-                    echo "🎯 ==================================="
+            // СТАДИЯ 1: Получение кода
+            stage('Checkout') {
+                steps {
+                    checkout scm
+                    echo "📦 Ветка: ${env.BRANCH_NAME}"
+                }
+            }
 
-                    // Выводим информацию о триггере
-                    def causes = currentBuild.getBuildCauses()
-                    causes.each { cause ->
-                        echo "Build cause: ${cause}"
-                        if (cause instanceof hudson.model.Cause.UpstreamCause) {
-                            echo "Upstream cause"
-                        } else if (cause.shortDescription?.contains("GitHub")) {
-                            echo "✅ Triggered by GitHub Webhook!"
-                        }
+            // СТАДИЯ 2: Сборка и запуск через Docker Compose
+            stage('Build and Deploy') {
+                steps {
+                    script {
+                        echo "🚀 Использую существующие Dockerfile и docker-compose.yml"
+
+                        // 1. Останавливаем старые контейнеры
+                        sh '''
+                            echo "=== Остановка старых контейнеров ==="
+                            docker compose down --remove-orphans || true
+                        '''
+                        sh '''
+                            docker build -t task-tracker-frontend:latest client
+                            docker build -t task-tracker-backend:latest server
+                            docker compose up
+                        '''
+
+                        // 3. Проверяем что все запустилось
+                        sh '''
+                            echo "=== Статус контейнеров ==="
+                            docker compose ps
+
+                            echo "=== Проверка здоровья ==="
+                            MAX_ATTEMPTS=12
+                            for i in $(seq 1 $MAX_ATTEMPTS); do
+                                if docker compose exec backend curl -f http://localhost:8080/health >/dev/null 2>&1; then
+                                    echo "✅ Backend здоров после $i попыток"
+                                    break
+                                fi
+                                if [ $i -eq $MAX_ATTEMPTS ]; then
+                                    echo "❌ Backend не запустился"
+                                    docker compose logs backend
+                                    exit 1
+                                fi
+                                echo "⏳ Ожидание backend... ($i/$MAX_ATTEMPTS)"
+                                sleep 5
+                            done
+                        '''
                     }
+                }
+            }
 
-                    // Выводим переменные окружения
-                    sh '''
-                        echo "=== Environment Variables ==="
-                        echo "GIT_URL: ${GIT_URL}"
-                        echo "GIT_BRANCH: ${GIT_BRANCH}"
-                        echo "GIT_COMMIT: ${GIT_COMMIT}"
-                        echo "BRANCH_NAME: ${BRANCH_NAME}"
-                        echo "CHANGE_ID: ${CHANGE_ID}"
-                        echo "============================="
-                    '''
+            // СТАДИЯ 3: Запуск тестов (опционально)
+            stage('Run Tests') {
+                steps {
+                    script {
+                        echo "🧪 Запуск тестов..."
+
+                        // Запускаем тесты внутри контейнеров
+                        sh '''
+                            echo "=== Тесты backend ==="
+                            docker compose exec backend go test ./... -v 2>&1 | tail -20 || echo "Тесты backend завершились"
+
+                            echo "=== Тесты frontend ==="
+                            docker compose exec frontend npm test -- --passWithNoTests 2>&1 | tail -20 || echo "Тесты frontend завершились"
+                        '''
+                    }
                 }
             }
         }
 
-        stage('Build') {
-            steps {
-                echo "🔨 Building application..."
-                // Твоя логика сборки
+        post {
+            always {
+                echo "📊 Сборка завершена: ${currentBuild.currentResult}"
+                sh 'docker compose ps'
+            }
+            success {
+                echo "✅ ПРИЛОЖЕНИЕ РАБОТАЕТ!"
+                echo "🌐 Frontend: http://localhost"
+                echo "🔧 API: http://localhost:8080"
+            }
+            failure {
+                sh '''
+                    echo "=== Логи для отладки ==="
+                    docker compose logs --tail=50
+                '''
             }
         }
-    }
 
-    post {
-        success {
-            echo "✅ Build triggered by webhook succeeded!"
-        }
     }
 }
