@@ -20,27 +20,14 @@ pipeline {
 
         stage('Setup Environment') {
             steps {
-                script {
-                    echo "🔧 Настройка окружения из secret file..."
-
-                    // 1. Копируем секретный файл в нужные места
-                    sh '''
-                        echo "=== Копирую .env файл ==="
-
-                        # Копируем в server для Dockerfile
-                        cp "$ENV_FILE" server/.env
-
-                        # Копируем в корень для docker-compose
-                        cp "$ENV_FILE" .env
-
-                        # Защищаем файлы
-                        chown docker-runner:docker-runner server/.env .env
+                sh '''
+                    # Создаем файлы с правильными правами
+                    sudo -u docker-runner bash -c "
+                        cp '$ENV_FILE' server/.env
+                        cp '$ENV_FILE' .env
                         chmod 600 server/.env .env
-
-                        echo ".env файлы созданы из секрета"
-                        echo "Файл содержит: $(wc -l < .env) строк"
-                    '''
-                }
+                    "
+                '''
             }
         }
 
