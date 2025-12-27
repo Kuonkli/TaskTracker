@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../components/Layout/Header';
 import Sidebar from '../components/Layout/SideBar';
-import TaskList from '../components/Tasks/TaskList';
 import api from '../services/api';
 import '../styles/dashboard.css';
 
@@ -21,23 +20,17 @@ const Dashboard = () => {
 
     const fetchDashboardData = async () => {
         try {
-            // Получаем задачи с защитой от null
             const tasksResponse = await api.get('/api/tasks?limit=5');
             const allTasksResponse = await api.get('/api/tasks?limit=1000');
-
-            // Получаем проекты с защитой от null
             const projectsResponse = await api.get('/api/projects?limit=5');
 
-            // Безопасное извлечение данных
             const recentTasksData = Array.isArray(tasksResponse?.data) ? tasksResponse.data : [];
             const allTasksData = Array.isArray(allTasksResponse?.data) ? allTasksResponse.data : [];
             const projectsData = Array.isArray(projectsResponse?.data) ? projectsResponse.data : [];
 
-            // Фильтруем только валидные задачи
             const validAllTasks = allTasksData.filter(task => task && typeof task === 'object');
             const validRecentTasks = recentTasksData.filter(task => task && typeof task === 'object');
 
-            // Рассчитываем статистику
             const totalTasks = validAllTasks.length;
             const completedTasks = validAllTasks.filter(task => task.status === 'done').length;
             const activeProjects = projectsData.length;
@@ -60,6 +53,87 @@ const Dashboard = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    // Функции для отображения задач
+    const getPriorityClass = (priority) => {
+        switch (priority) {
+            case 'high': return 'priority-high';
+            case 'medium': return 'priority-medium';
+            case 'low': return 'priority-low';
+            default: return 'priority-medium';
+        }
+    };
+
+    const getStatusClass = (status) => {
+        switch (status) {
+            case 'todo': return 'status-todo';
+            case 'in_progress': return 'status-in_progress';
+            case 'done': return 'status-done';
+            default: return 'status-todo';
+        }
+    };
+
+    const getStatusLabel = (status) => {
+        switch (status) {
+            case 'todo': return 'To Do';
+            case 'in_progress': return 'In Progress';
+            case 'done': return 'Done';
+            default: return status;
+        }
+    };
+
+    const formatDate = (dateString) => {
+        if (!dateString) return 'No due date';
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        } catch {
+            return 'Invalid date';
+        }
+    };
+
+    const isOverdue = (task) => {
+        if (!task.due_date || task.status === 'done') return false;
+        return new Date(task.due_date) < new Date();
+    };
+
+    const renderTaskCard = (task) => {
+        if (!task) return null;
+
+        return (
+            <div key={task.id} className="task-card">
+                <div className="task-card-header">
+                    <h3 className="task-title">{task.title || 'Untitled Task'}</h3>
+                    <span className={`task-priority ${getPriorityClass(task.priority)}`}>
+                        {task.priority || 'medium'}
+                    </span>
+                </div>
+
+                {task.description && (
+                    <p className="task-description">{task.description}</p>
+                )}
+
+                {task.project && (
+                    <div className="task-project">
+                        <strong>Project:</strong> {task.project.name}
+                    </div>
+                )}
+
+                <div className="task-meta">
+                    <div>
+                        <span className={`task-status ${getStatusClass(task.status)}`}>
+                            {getStatusLabel(task.status || 'todo')}
+                        </span>
+                    </div>
+
+                    <div className={`task-due-date ${isOverdue(task) ? 'due-date-overdue' : ''}`}>
+                        <span>📅 {formatDate(task.due_date)}</span>
+                        {isOverdue(task) && <span> (Overdue)</span>}
+                    </div>
+                </div>
+            </div>
+        );
     };
 
     if (loading) {
@@ -116,11 +190,21 @@ const Dashboard = () => {
 
                 {/* Недавние задачи */}
                 <div className="recent-tasks">
-                    <h3>Recent Tasks</h3>
+                    <div className="recent-tasks-header">
+                        <h3>Recent Tasks</h3>
+                        <a href="/tasks" className="view-all-link">View All →</a>
+                    </div>
+
                     {recentTasks.length > 0 ? (
-                        <TaskList tasks={recentTasks} showProject={true} />
+                        <div className="dashboard-tasks-list">
+                            {recentTasks.map(task => renderTaskCard(task))}
+                        </div>
                     ) : (
-                        <p>No tasks yet. <a href="/tasks" style={{color: '#4f46e5'}}>Create your first task</a></p>
+                        <div className="empty-tasks">
+                            <div className="empty-tasks-icon">📝</div>
+                            <h4>No recent tasks</h4>
+                            <p>No tasks to display. <a href="/tasks" className="create-task-link">Create your first task</a></p>
+                        </div>
                     )}
                 </div>
             </main>
