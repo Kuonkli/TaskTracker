@@ -19,7 +19,7 @@ pipeline {
         stage('Build and Deploy') {
             steps {
                 script {
-                    echo "🚀 Использую существующие Dockerfile и docker-compose.yml"
+                    echo "Использую существующие Dockerfile и docker-compose.yml"
 
                     // 1. Останавливаем старые контейнеры
                     sh '''
@@ -43,11 +43,11 @@ pipeline {
                         MAX_ATTEMPTS=12
                         for i in $(seq 1 $MAX_ATTEMPTS); do
                             if curl -f http://localhost:8080/health >/dev/null 2>&1; then
-                                echo "✅ Backend здоров после $i попыток"
+                                echo "Backend здоров после $i попыток"
                                 break
                             fi
                             if [ $i -eq $MAX_ATTEMPTS ]; then
-                                echo "❌ Backend не запустился"
+                                echo "Backend не запустился"
                                 docker compose logs backend
                                 exit 1
                             fi
