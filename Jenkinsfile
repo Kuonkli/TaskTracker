@@ -34,6 +34,7 @@ pipeline {
                         cp "$ENV_FILE" .env
 
                         # Защищаем файлы
+                        chown docker-runner:docker-runner server/.env .env
                         chmod 600 server/.env .env
 
                         echo ".env файлы созданы из секрета"
