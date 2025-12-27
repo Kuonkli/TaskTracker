@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    environment {
+        // Загружаем .env файл как секрет
+        ENV_FILE = credentials('task-tracker-env')
+    }
+
     triggers {
         githubPush()
     }
@@ -10,6 +15,31 @@ pipeline {
             steps {
                 checkout scm
                 echo "📦 Ветка: ${env.BRANCH_NAME}"
+            }
+        }
+
+        stage('Setup Environment') {
+            steps {
+                script {
+                    echo "🔧 Настройка окружения из secret file..."
+
+                    // 1. Копируем секретный файл в нужные места
+                    sh '''
+                        echo "=== Копирую .env файл ==="
+
+                        # Копируем в server для Dockerfile
+                        cp "$ENV_FILE" server/.env
+
+                        # Копируем в корень для docker-compose
+                        cp "$ENV_FILE" .env
+
+                        # Защищаем файлы
+                        chmod 600 server/.env .env
+
+                        echo ".env файлы созданы из секрета"
+                        echo "Файл содержит: $(wc -l < .env) строк"
+                    '''
+                }
             }
         }
 
