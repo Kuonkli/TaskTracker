@@ -20,22 +20,27 @@ pipeline {
 
         stage('Setup Environment') {
             steps {
-                sh '''
-                    echo "🔧 Создаем .env файлы для docker-runner..."
+                script {
+                    echo "🔧 Настройка окружения из secret file..."
 
-                    # Создаем файлы от имени jenkins
-                    cat "$ENV_FILE" > /tmp/env.tmp
+                    // 1. Копируем секретный файл в нужные места
+                    sh '''
+                        echo "=== Копирую .env файл ==="
 
-                    # Копируем файлы и даем доступ docker-runner
-                    sudo install -m 600 -o docker-runner -g docker-runner /tmp/env.tmp server/.env
-                    sudo install -m 600 -o docker-runner -g docker-runner /tmp/env.tmp .env
+                        # Копируем в server для Dockerfile
+                        cp "$ENV_FILE" server/.env
 
-                    # Чистим временный файл
-                    rm -f /tmp/env.tmp
+                        # Копируем в корень для docker-compose
+                        cp "$ENV_FILE" .env
 
-                    echo "=== Проверка прав ==="
-                    ls -la server/.env .env
-                '''
+                        # Защищаем файлы
+                        chown docker-runner:docker-runner server/.env .env
+                        chmod 600 server/.env .env
+
+                        echo ".env файлы созданы из секрета"
+                        echo "Файл содержит: $(wc -l < .env) строк"
+                    '''
+                }
             }
         }
 
