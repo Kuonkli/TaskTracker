@@ -21,10 +21,20 @@ pipeline {
         stage('Setup Environment') {
             steps {
                 sh '''
-                    # Создаем файлы с правильными правами
-                    sudo -u docker-runner cp "$ENV_FILE" server/.env
-                    sudo -u docker-runner cp "$ENV_FILE" .env
-                    chmod 600 server/.env .env
+                    echo "🔧 Создаем .env файлы для docker-runner..."
+
+                    # Создаем файлы от имени jenkins
+                    cat "$ENV_FILE" > /tmp/env.tmp
+
+                    # Копируем файлы и даем доступ docker-runner
+                    sudo install -m 600 -o docker-runner -g docker-runner /tmp/env.tmp server/.env
+                    sudo install -m 600 -o docker-runner -g docker-runner /tmp/env.tmp .env
+
+                    # Чистим временный файл
+                    rm -f /tmp/env.tmp
+
+                    echo "=== Проверка прав ==="
+                    ls -la server/.env .env
                 '''
             }
         }
