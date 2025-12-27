@@ -27,8 +27,15 @@ pipeline {
                     sh '''
                         echo "=== Копирую .env файл ==="
 
-                        sudo -u docker-runner cp "$ENV_FILE" server/.env
-                        sudo -u docker-runner cp "$ENV_FILE" .env
+                        # Копируем в server для Dockerfile
+                        cp "$ENV_FILE" server/.env
+
+                        # Копируем в корень для docker-compose
+                        cp "$ENV_FILE" .env
+
+                        # Защищаем файлы
+                        chown docker-runner:docker-runner server/.env .env
+                        chmod 644 server/.env .env
 
                         echo ".env файлы созданы из секрета"
                         echo "Файл содержит: $(wc -l < .env) строк"
