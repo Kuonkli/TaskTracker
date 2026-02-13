@@ -74,7 +74,7 @@ func main() {
 	// Настройка роутера
 	r := gin.Default()
 	config := cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "http://localhost", "http://127.0.0.1", "http://localhost:80"},
+		AllowOrigins:     []string{"http://85.239.61.190", "http://85.239.61.190:80", "http://localhost:3000", "http://localhost", "http://127.0.0.1", "http://localhost:80"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Authorization", "X-Refresh-Token", "Content-Type"},
 		ExposeHeaders:    []string{"Authorization", "X-Refresh-Token"},

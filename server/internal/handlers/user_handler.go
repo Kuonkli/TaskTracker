@@ -45,8 +45,8 @@ func (h *UserHandler) Register(c *gin.Context) {
 		return
 	}
 
-	c.SetCookie("access_token", accessToken, 86400, "/", "localhost", false, true)
-	c.SetCookie("refresh_token", refreshToken, 86400, "/", "localhost", false, true)
+	c.SetCookie("access_token", accessToken, 86400, "/", "", false, true)
+	c.SetCookie("refresh_token", refreshToken, 86400, "/", "", false, true)
 
 	c.JSON(http.StatusCreated, gin.H{
 		"user": gin.H{
@@ -84,8 +84,8 @@ func (h *UserHandler) Login(c *gin.Context) {
 		return
 	}
 
-	c.SetCookie("access_token", accessToken, 86400, "/", "localhost", false, true)
-	c.SetCookie("refresh_token", refreshToken, 86400, "/", "localhost", false, true)
+	c.SetCookie("access_token", accessToken, 86400, "/", "", false, true)
+	c.SetCookie("refresh_token", refreshToken, 86400, "/", "", false, true)
 
 	c.JSON(http.StatusOK, gin.H{
 		"user": gin.H{
