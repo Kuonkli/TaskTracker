@@ -1,0 +1,87 @@
+name: Test and Deploy
+
+on:
+  push:
+    branches: [ main, dev]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24.2
+
+      - name: Test
+        run: |
+          go test -v ./...
+          cd tests && go test -v ./...
+
+      - name: Run integration tests
+        run: |
+          cd tests/integration
+          go test -v -run 'Test.*'
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -e
+            
+            echo "Начинаем деплой..."
+            cd /opt/task_tracker
+            
+            CURRENT_COMMIT=$(git rev-parse HEAD)
+            echo "Текущий коммит: $CURRENT_COMMIT"
+            
+            echo "Получаем последние изменения из git..."
+            git pull origin main
+            NEW_COMMIT=$(git rev-parse HEAD)
+            echo "Новый коммит: $NEW_COMMIT"
+            
+            if [ "$CURRENT_COMMIT" = "$NEW_COMMIT" ]; then
+              echo "Изменений нет, пропускаем деплой"
+              exit 0
+            fi
+            
+            echo "Останавливаем старые контейнеры..."
+            docker compose down || true
+            
+            echo "Собираем новые образы..."
+            docker compose build --no-cache
+            
+            echo "Запускаем новые контейнеры..."
+            docker compose up -d
+            
+            echo "Проверяем здоровье приложения..."
+            sleep 10
+            
+            if curl -f http://localhost:8080/health; then
+              echo "Health check прошел успешно"
+            else
+              echo "Health check failed! Откатываем изменения..."
+              docker compose down
+              git reset --hard $CURRENT_COMMIT
+              docker compose up -d
+              exit 1
+            fi
+            
+            echo "Статус контейнеров:"
+            docker compose ps
+            
+            echo "Деплой успешно завершен"
