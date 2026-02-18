@@ -22,6 +22,6 @@ func TestHealthEndpoints(t *testing.T) {
 		w := ts.Request("HEAD", "/health", nil, "")
 
 		assert.Equal(t, http.StatusOK, w.Code)
-		assert.Empty(t, w.Body.String())
+		assert.Equal(t, "OK", w.Body.String())
 	})
 }

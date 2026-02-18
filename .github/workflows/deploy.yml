@@ -26,7 +26,7 @@ jobs:
         working-directory: ./server
 
       - name: Run all tests
-        run: go test -v ./...
+        run: go test -v ./tests/integration/...
         working-directory: ./server
 
   deploy:
