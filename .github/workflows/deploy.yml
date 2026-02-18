@@ -2,11 +2,11 @@ name: Test and Deploy
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, dev ]
     paths:
       - 'server/**'
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
     paths:
       - 'server/**'
 
