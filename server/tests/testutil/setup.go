@@ -28,7 +28,11 @@ func NewTestServer(t *testing.T, setupRoutes func(*gin.Engine)) *TestServer {
 func (ts *TestServer) Request(method, path string, body interface{}, token string) *httptest.ResponseRecorder {
 	var reqBody []byte
 	if body != nil {
-		reqBody, _ = json.Marshal(body)
+		var err error
+		reqBody, err = json.Marshal(body)
+		if err != nil {
+			panic("Failed to marshal request body: " + err.Error())
+		}
 	}
 
 	req := httptest.NewRequest(method, path, bytes.NewReader(reqBody))
@@ -52,4 +56,9 @@ func ParseResponse(t *testing.T, w *httptest.ResponseRecorder, dest interface{})
 // RequireSuccess проверяет что статус код 2xx
 func RequireSuccess(t *testing.T, w *httptest.ResponseRecorder) {
 	require.True(t, w.Code >= 200 && w.Code < 300, "Expected success status code, got %d. Body: %s", w.Code, w.Body.String())
+}
+
+// RequireError проверяет что статус код 4xx или 5xx
+func RequireError(t *testing.T, w *httptest.ResponseRecorder) {
+	require.True(t, w.Code >= 400, "Expected error status code, got %d. Body: %s", w.Code, w.Body.String())
 }
