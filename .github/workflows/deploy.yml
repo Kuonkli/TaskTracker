@@ -66,7 +66,7 @@ jobs:
             docker compose down || true
             
             echo "Собираем новые образы..."
-            docker compose build --no-cache
+            docker compose build
             
             echo "Запускаем новые контейнеры..."
             docker compose up -d
