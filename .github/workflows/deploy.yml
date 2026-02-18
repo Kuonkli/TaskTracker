@@ -41,6 +41,8 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USER }}
           key: ${{ secrets.SSH_KEY }}
+          timeout: 60s
+          command_timeout: 30m
           script: |
             set -e
             
