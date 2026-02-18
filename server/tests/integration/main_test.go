@@ -21,7 +21,6 @@ func setupRoutes(r *gin.Engine) {
 
 	// Защищенные роуты
 	api := r.Group("/api")
-	api.Use(mockAuthMiddleware()) // Заглушка для тестов
 
 	// Пользователь
 	api.GET("/profile", mockGetProfile)
