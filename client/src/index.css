@@ -1,13 +1,86 @@
-body {
+* {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+:root {
+  --bg-primary: #0A0A0F;
+  --bg-secondary: #1E1E2A;
+  --bg-tertiary: #2A2A35;
+  --accent-primary: #8B5CF6;
+  --accent-secondary: #7C3AED;
+  --text-primary: #FFFFFF;
+  --text-secondary: #9CA3AF;
+  --text-tertiary: #6B7280;
+  --border-color: #2A2A35;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --error: #EF4444;
+  --info: #3B82F6;
+}
+
+.task-priority-low {
+  background-color: rgba(107, 114, 128, 0.2);
+  color: var(--text-tertiary);
+}
+
+.task-priority-medium {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: var(--info);
+}
+
+.task-priority-high {
+  background-color: rgba(245, 158, 11, 0.2);
+  color: var(--warning);
+}
+
+.task-priority-critical {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: var(--error);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* Фиксированная высота */
+  overflow: hidden;
+}
+
+.main-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  height: calc(100vh - 64px);
+}
+
+.content-area {
+  flex: 1;
+  background: linear-gradient(135deg, var(--bg-primary) 0%, #0F0F17 100%);
+}
+
+/* Scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-primary);
 }

@@ -1,0 +1,58 @@
+// API endpoints
+export const API_ENDPOINTS = {
+    auth: {
+        login: '/login',
+        register: '/register',
+        logout: '/logout',
+        profile: '/user/profile',
+    },
+    projects: {
+        board: (projectId) => `/projects/${projectId}/board`,
+        list: '/user/projects',
+        detail: (projectId) => `/projects/${projectId}`,
+        create: '/projects',
+        createDefault: '/projects/default',
+        update: (projectId) => `/projects/${projectId}`,
+        delete: (projectId) => `/projects/${projectId}`,
+        members: (projectId) => `/projects/${projectId}/members`,
+        statuses: (projectId) => `/projects/${projectId}/statuses`,
+        lanes: (projectId) => `/projects/${projectId}/lanes`,
+        tasks: (projectId) => `/projects/${projectId}/tasks`,
+        profile: (projectId) => `/projects/${projectId}/profile`,
+        memberProfile: (projectId, userId) => `/projects/${projectId}/members/${userId}`,
+        memberActivities: (projectId, userId, limit, offset) => `/projects/${projectId}/members/${userId}/activities?limit=${limit}&offset=${offset}`,
+    },
+    tasks: {
+        create: (projectId) => `/projects/${projectId}/tasks`,
+        update: (projectId, taskId) => `/projects/${projectId}/tasks/${taskId}`,
+        detail: (projectId, taskId) => `/projects/${projectId}/tasks/${taskId}`,
+        list: (projectId, query) => `/projects/${projectId}/tasks?${query}`,
+        activities: (projectId, taskId, limit = 30, offset = 0) => `/projects/${projectId}/tasks/${taskId}/activities?limit=${limit}&offset=${offset}`,
+        comments: (projectId, taskId, limit = 30, offset = 0) => `/projects/${projectId}/tasks/${taskId}/comments?limit=${limit}&offset=${offset}`,
+        changes: (projectId, taskId, fieldName = "", limit = 30, offset = 0) => `/projects/${projectId}/tasks/${taskId}/changes?limit=${limit}&offset=${offset}&fieldName=${fieldName}`,
+        updateStatus: (projectId, taskId) => `/projects/${projectId}/tasks/${taskId}`,
+        addTag: (projectId, taskId, tagId) => `/projects/${projectId}/tasks/${taskId}/tags?tag_id=${tagId}`,
+        removeTag: (projectId, taskId, tagId) => `/projects/${projectId}/tasks/${taskId}/tags?tag_id=${tagId}`,
+    },
+    comments: {
+        create: (taskId) => `/tasks/${taskId}/comments`,
+        update: (commentId) => `/comments/${commentId}`,
+        delete: (commentId) => `/comments/${commentId}`,
+    },
+    attachments: {
+        upload: (taskId) => `/tasks/${taskId}/attachments`,
+        download: (attachmentId) => `/attachments/${attachmentId}`,
+        delete: (attachmentId) => `/attachments/${attachmentId}`,
+    },
+    tags: {
+        list: (projectId) => `/projects/${projectId}/tags`,
+        create: (projectId) => `/projects/${projectId}/tags`,
+        update: (tagId) => `/tags/${tagId}`,
+        delete: (projectId, tagId) => `/projects/${projectId}/tags`,
+    },
+    search: {
+        tasks: '/search/tasks',
+        projects: '/search/projects',
+        users: '/search/users',
+    },
+};

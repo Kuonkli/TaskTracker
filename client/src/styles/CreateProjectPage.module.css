@@ -1,0 +1,994 @@
+.page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0F0F17 0%, #1A1A2E 100%);
+    padding: 24px;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    margin-bottom: 32px;
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.headerContent {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.title {
+    font-size: 28px;
+    font-weight: 600;
+    color: #FFFFFF;
+    margin: 0;
+}
+
+.stepIndicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.step {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+.step.active {
+    background: #8B5CF6;
+    color: #FFFFFF;
+}
+
+.stepArrow {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.backBtn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+}
+
+.backBtn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #8B5CF6;
+    color: #FFFFFF;
+}
+
+.content {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.setupStep {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 32px;
+    animation: fadeIn 0.3s ease;
+}
+
+.stepHeader {
+    margin-bottom: 32px;
+}
+
+.stepTitle {
+    font-size: 24px;
+    font-weight: 600;
+    color: #FFFFFF;
+    margin-bottom: 8px;
+}
+
+.stepDescription {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 14px;
+    margin: 0;
+}
+
+.helpBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(139, 92, 246, 0.1);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 6px;
+    color: #8B5CF6;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 12px;
+}
+
+.helpBtn:hover {
+    background: rgba(139, 92, 246, 0.2);
+}
+
+/* Rule Helper */
+.ruleHelper {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+}
+
+.helperHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.helperHeader h4 {
+    color: #FFFFFF;
+    font-size: 16px;
+    margin: 0;
+}
+
+.closeHelper {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.closeHelper:hover {
+    color: #FFFFFF;
+}
+
+.helperContent {
+    display: grid;
+    gap: 12px;
+}
+
+.ruleExample {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+}
+
+.ruleCode {
+    font-family: 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
+    color: #8B5CF6;
+    background: rgba(139, 92, 246, 0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+    min-width: 200px;
+}
+
+.ruleLabel {
+    flex: 1;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 13px;
+}
+
+.useExample {
+    padding: 4px 12px;
+    background: rgba(139, 92, 246, 0.2);
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    border-radius: 4px;
+    color: #8B5CF6;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.useExample:hover {
+    background: rgba(139, 92, 246, 0.3);
+}
+
+/* Form Groups */
+.formGroup {
+    margin-bottom: 24px;
+}
+
+.label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 8px;
+}
+
+.required {
+    color: #EF4444;
+}
+
+.input,
+.textarea {
+    width: 100%;
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: #FFFFFF;
+    font-size: 14px;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.input:focus,
+.textarea:focus {
+    outline: none;
+    border-color: #8B5CF6;
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+/* Items List */
+.itemsList {
+    margin-bottom: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    overflow: visible;
+}
+
+.listItem {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: background 0.2s;
+}
+
+.listItem:first-child {
+    border-radius: 12px 12px 0 0;
+}
+
+.listItem:last-child {
+    border-bottom: none;
+    border-radius: 0 0 12px 12px;
+}
+
+.listItem:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.laneItem {
+    align-items: center;
+}
+
+.dragHandle {
+    cursor: grab;
+    color: rgba(255, 255, 255, 0.3);
+    display: flex;
+    align-items: center;
+}
+
+.dragHandle:active {
+    cursor: grabbing;
+}
+
+.itemColor {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.itemInfo {
+    flex: 1;
+}
+
+.itemName {
+    font-size: 15px;
+    font-weight: 500;
+    color: #FFFFFF;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.itemMeta,
+.itemDescription {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.4);
+    margin-right: 4px;
+}
+
+.itemRule {
+    font-family: 'Monaco', 'Courier New', monospace;
+    font-size: 12px;
+    color: #8B5CF6;
+    background: rgba(139, 92, 246, 0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-top: 6px;
+    display: inline-block;
+}
+
+.itemActions {
+    display: flex;
+    gap: 4px;
+}
+
+.moveBtn,
+.editBtn,
+.removeBtn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.moveBtn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.1);
+    color: #FFFFFF;
+}
+
+.moveBtn:disabled {
+    opacity: 0.2;
+    cursor: not-allowed;
+}
+
+.editBtn:hover {
+    background: rgba(139, 92, 246, 0.2);
+    color: var(--accent-primary);
+}
+
+.removeBtn:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #EF4444;
+}
+
+/* Edit Forms */
+.itemEditForm {
+    flex: 1;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.laneEditForm {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.editInput,
+.editSelect,
+.editTextarea {
+    padding: 8px 12px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: #FFFFFF;
+    font-size: 13px;
+    font-family: inherit;
+    height: 40px;
+}
+
+.editInput:focus,
+.editSelect:focus,
+.editTextarea:focus {
+    outline: none;
+    border-color: #8B5CF6;
+}
+
+.editInput {
+    width: 100%;
+}
+
+.editTextarea {
+    resize: vertical;
+    min-height: 60px;
+}
+
+.editColor {
+    width: 50px;
+    height: 38px;
+    padding: 4px;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+}
+
+.editActions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.saveEdit {
+    padding: 8px 16px;
+    background: #8B5CF6;
+    border: none;
+    border-radius: 6px;
+    color: #FFFFFF;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.saveEdit:hover {
+    background: #7C3AED;
+}
+
+.testRuleBtn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: rgba(59, 130, 246, 0.2);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    border-radius: 6px;
+    color: #3B82F6;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.testRuleBtn:hover:not(:disabled) {
+    background: rgba(59, 130, 246, 0.3);
+}
+
+.testRuleBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Add Forms */
+.addItem {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.addTitle {
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0 0 12px 0;
+}
+
+.addForm {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+}
+
+.addStatusForm {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+}
+
+
+.laneAddForm {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.tagAddForm {
+    flex-direction: row;
+}
+
+.addInput,
+.addSelect,
+.addTextarea {
+    padding: 10px 12px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: #FFFFFF;
+    font-size: 14px;
+    font-family: inherit;
+}
+
+.addInput:focus,
+.addSelect:focus,
+.addTextarea:focus {
+    outline: none;
+    border-color: #8B5CF6;
+}
+
+.addInput {
+    flex: 2;
+    min-width: 220px;
+}
+
+.addSelect {
+    flex: 1;
+    min-width: 120px;
+    padding-right: 32px;
+}
+
+.addTextarea {
+    width: 100%;
+    resize: vertical;
+    min-height: 40px;
+}
+
+.colorPickerContainer {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    background: var(--bg-primary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 0 8px;
+    transition: border 0.2s ease;
+}
+
+.colorPickerContainer:hover {
+    border: 1px solid var(--accent-primary);
+}
+
+.colorPickerContainer:focus-within {
+    border: 1px solid var(--accent-primary);
+}
+
+.colorPicker {
+    display: flex;
+    align-items: center;
+    width: 150px;
+    height: 40px;
+    cursor: pointer;
+    background: var(--bg-primary);
+    border: transparent;
+}
+
+.colorPickerInput {
+    width: 100%;
+    padding: 8px 32px 8px 12px;
+    border: transparent;
+    border-radius: 6px;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 14px;
+    cursor: pointer;
+    outline: none;
+}
+
+.colorPickerColor {
+    width:  24px;
+    height: 24px;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.colorPickerDropdown {
+    left: -20%;
+    min-width: 180px;
+}
+
+.formRow {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.addBtn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    background: #8B5CF6;
+    border: none;
+    border-radius: 8px;
+    color: #FFFFFF;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.addBtn:hover {
+    background: #7C3AED;
+}
+
+/* Tags Grid */
+.tagsGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.tagItem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+}
+
+.tagColor {
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+}
+
+.tagTitle {
+    color: #FFFFFF;
+    font-size: 14px;
+}
+
+.removeTag {
+    width: 16px;
+    height: 16px;
+    border: none;
+    background: transparent;
+    border-radius: 4px;
+    color: rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.removeTag:hover {
+    background: rgba(107, 114, 128, 0.1);
+    color: var(--text-secondary);
+}
+
+/* Step Actions */
+.stepActions {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.backBtnStep {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 24px;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.backBtnStep:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: #8B5CF6;
+    color: #FFFFFF;
+}
+
+.nextBtn,
+.createBtn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: #8B5CF6;
+    border: none;
+    border-radius: 10px;
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.nextBtn:hover:not(:disabled),
+.createBtn:hover:not(:disabled) {
+    background: #7C3AED;
+    transform: translateY(-1px);
+}
+
+.nextBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.createBtn {
+    background: var(--accent-primary);
+}
+
+.createBtn:hover:not(:disabled) {
+    background: var(--accent-primary);
+}
+
+/* ===== НОВЫЕ СТИЛИ ДЛЯ ФУНКЦИОНАЛА СТАТУСОВ И КОЛОНОК ===== */
+
+/* Информационная панель о колонках на доске */
+.boardColumnsInfo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: rgba(139, 92, 246, 0.1);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: 10px;
+    margin-bottom: 24px;
+}
+
+.columnsCounter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+}
+
+.columnsCounter strong {
+    color: #8B5CF6;
+}
+
+.maxColumnsWarning {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #F59E0B;
+    font-size: 13px;
+}
+
+/* Стиль для скрытого статуса */
+.listItem.hiddenOnBoard {
+    opacity: 0.7;
+    background: rgba(0, 0, 0, 0.15);
+}
+
+/* Заголовок элемента с бейджами */
+.itemHeader {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+
+/* Бейдж "On Board" */
+.boardBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: rgba(16, 185, 129, 0.2);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 12px;
+    color: #10B981;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+/* Бейдж "Hidden" */
+.hiddenBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: rgba(107, 114, 128, 0.2);
+    border: 1px solid rgba(107, 114, 128, 0.3);
+    border-radius: 12px;
+    color: #9CA3AF;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+/* Кнопка переключения видимости на доске */
+.toggleBoardBtn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.toggleBoardBtn:hover {
+    background: rgba(139, 92, 246, 0.2);
+    color: #8B5CF6;
+}
+
+/* ===== НЕДОСТАЮЩИЕ СТИЛИ ===== */
+
+/* Заголовок секции */
+.sectionHeader {
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.sectionTitle {
+    font-size: 16px;
+    font-weight: 600;
+    color: #FFFFFF;
+    margin: 0;
+}
+
+.sectionHint {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.4);
+    margin-left: 12px;
+}
+
+/* Кнопка глазика в форме добавления */
+.addFormToggle {
+    width: 42px;
+    height: 42px;
+    background: var(--bg-primary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.addFormToggle:hover {
+    background: rgba(139, 92, 246, 0.2);
+    border-color: #8B5CF6;
+}
+
+/* Пустое сообщение для колонок */
+.emptyBoardMessage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 16px;
+    color: rgba(255, 255, 255, 0.4);
+    text-align: center;
+}
+
+.emptyBoardMessage svg {
+    margin-bottom: 12px;
+    opacity: 0.5;
+}
+
+.emptyBoardMessage span {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 4px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.emptyBoardMessage p {
+    font-size: 12px;
+    margin: 0;
+    color: rgba(255, 255, 255, 0.3);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .page {
+        padding: 16px;
+    }
+
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .headerContent {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+        width: 100%;
+    }
+
+    .title {
+        font-size: 24px;
+    }
+
+    .setupStep {
+        padding: 20px;
+    }
+
+    .addForm {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .addInput,
+    .addSelect,
+    .addBtn {
+        width: 100%;
+    }
+
+    .formRow {
+        flex-direction: column;
+    }
+
+    .stepActions {
+        flex-direction: column-reverse;
+    }
+
+    .backBtnStep,
+    .nextBtn,
+    .createBtn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .ruleExample {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .ruleCode {
+        width: 100%;
+    }
+
+    .itemEditForm {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .sectionHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    .sectionHint {
+        margin-left: 0;
+    }
+}

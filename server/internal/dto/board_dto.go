@@ -1,0 +1,67 @@
+package dto
+
+import (
+	"github.com/google/uuid"
+	"gorm.io/datatypes"
+	"task-tracker/internal/models"
+)
+
+type Board struct {
+	ProjectID uuid.UUID               `json:"project_id"`
+	Columns   []models.Column         `json:"columns"`
+	Lanes     []LaneWithTasksResponse `json:"lanes"`
+}
+
+type LaneFilter struct {
+	ProjectID *uuid.UUID
+	Title     string
+}
+
+// Lane DTOs
+type CreateLaneRequest struct {
+	Title         string         `json:"title" binding:"required,max=100"`
+	Description   *string        `json:"description,omitempty"`
+	Color         string         `json:"color" binding:"omitempty,hexcolor"`
+	RuleCondition datatypes.JSON `json:"rule_condition" binding:"required"`
+}
+
+type UpdateLaneRequest struct {
+	Title         *string        `json:"title,omitempty"`
+	Description   *string        `json:"description,omitempty"`
+	Color         *string        `json:"color,omitempty"`
+	Position      *int           `json:"position,omitempty"`
+	RuleCondition datatypes.JSON `json:"rule_condition,omitempty"`
+}
+
+type ReorderLanesRequest struct {
+	Positions map[uuid.UUID]int `json:"positions" binding:"required"`
+}
+
+type LaneWithTasksResponse struct {
+	ID            uuid.UUID      `json:"id"`
+	ProjectID     uuid.UUID      `json:"project_id"`
+	Title         string         `json:"title"`
+	Description   *string        `json:"description,omitempty"`
+	Position      int            `json:"position"`
+	Color         string         `json:"color"`
+	RuleCondition datatypes.JSON `json:"rule_condition"`
+	Tasks         []models.Task  `json:"tasks,omitempty" binding:"required"`
+}
+
+type ColumnFilter struct {
+	ProjectID *uuid.UUID
+	StatusID  *uuid.UUID
+}
+
+type CreateColumnRequest struct {
+	StatusID uuid.UUID `json:"status_id" binding:"required"`
+}
+
+type UpdateColumnRequest struct {
+	StatusID *uuid.UUID `json:"status_id,omitempty"`
+	Position *int       `json:"position,omitempty"`
+}
+
+type ReorderColumnsRequest struct {
+	Positions map[uuid.UUID]int `json:"positions" binding:"required"`
+}

@@ -1,0 +1,241 @@
+/* styles/Toast.css - Dark theme version */
+
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    pointer-events: none;
+}
+
+.toast {
+    min-width: 320px;
+    max-width: 480px;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    pointer-events: auto;
+    border-left: 4px solid;
+    backdrop-filter: blur(15px);
+}
+
+.toast-error {
+    border-left-color: var(--error);
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(239, 68, 68, 0.2) 100%);
+}
+
+.toast-success {
+    border-left-color: var(--success);
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(16, 185, 129, 0.2) 100%);
+}
+
+.toast-warning {
+    border-left-color: var(--warning);
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(245, 158, 11, 0.2) 100%);
+}
+
+.toast-info {
+    border-left-color: var(--info);
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(59, 130, 246, 0.2) 100%);
+}
+
+.toast-icon {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.toast-error .toast-icon {
+    color: var(--error);
+}
+
+.toast-success .toast-icon {
+    color: var(--success);
+}
+
+.toast-warning .toast-icon {
+    color: var(--warning);
+}
+
+.toast-info .toast-icon {
+    color: var(--info);
+}
+
+.toast-content {
+    flex: 1;
+}
+
+.toast-message {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-primary);
+    font-weight: 500;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.toast-message-line {
+    margin-bottom: 4px;
+}
+
+.toast-message-line:last-child {
+    margin-bottom: 0;
+}
+
+/* Основное сообщение об ошибке */
+.toast-error .toast-message-line:first-child {
+    font-weight: 600;
+    color: var(--error);
+    margin-bottom: 8px;
+}
+
+/* Детали ошибки */
+.toast-error .toast-message-line:not(:first-child) {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    padding-left: 8px;
+    border-left: 2px solid rgba(239, 68, 68, 0.3);
+    margin-top: 4px;
+}
+
+/* Успех - основное сообщение */
+.toast-success .toast-message-line:first-child {
+    color: var(--success);
+}
+
+/* Предупреждение - основное сообщение */
+.toast-warning .toast-message-line:first-child {
+    color: var(--warning);
+}
+
+/* Информация - основное сообщение */
+.toast-info .toast-message-line:first-child {
+    color: var(--info);
+}
+
+.toast-close {
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-tertiary);
+    transition: all 0.2s;
+    flex-shrink: 0;
+    margin: -4px -4px -4px 0;
+}
+
+.toast-close:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+}
+
+/* Анимации */
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+.toast-enter {
+    animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toast-exit {
+    animation: slideOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 640px) {
+    .toast-container {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+    }
+
+    .toast {
+        min-width: auto;
+        width: 100%;
+        max-width: none;
+    }
+}
+
+/* Опционально: разные иконки для разных типов */
+.toast-error .toast-icon svg {
+    filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.3));
+}
+
+.toast-success .toast-icon svg {
+    filter: drop-shadow(0 0 2px rgba(16, 185, 129, 0.3));
+}
+
+.toast-warning .toast-icon svg {
+    filter: drop-shadow(0 0 2px rgba(245, 158, 11, 0.3));
+}
+
+.toast {
+    position: relative;
+    overflow: hidden;
+}
+
+.toast::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.1);
+    animation: progress 5s linear forwards;
+}
+
+.toast-error::after {
+    background: var(--error);
+}
+
+.toast-success::after {
+    background: var(--success);
+}
+
+.toast-warning::after {
+    background: var(--warning);
+}
+
+.toast-info::after {
+    background: var(--info);
+}
+
+@keyframes progress {
+    from {
+        width: 100%;
+    }
+    to {
+        width: 0%;
+    }
+}

@@ -39,6 +39,7 @@ out/
 .env.test.local
 .env.production.local
 /k8s
+create_tasks.sh
 
 # Кэш и временные файлы
 .cache/

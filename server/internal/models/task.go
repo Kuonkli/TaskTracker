@@ -6,38 +6,33 @@ import (
 	"time"
 )
 
-type TaskStatus string
-
-const (
-	StatusTodo       TaskStatus = "todo"
-	StatusInProgress TaskStatus = "in_progress"
-	StatusDone       TaskStatus = "done"
-)
-
-type TaskPriority string
-
-const (
-	PriorityLow    TaskPriority = "low"
-	PriorityMedium TaskPriority = "medium"
-	PriorityHigh   TaskPriority = "high"
-)
-
 type Task struct {
-	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
-	CreatedAt time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
-	UpdatedAt time.Time `gorm:"default:CURRENT_TIMESTAMP;constraint:onUpdate:CURRENT_TIMESTAMP" json:"updated_at"`
+	ID           uuid.UUID  `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	CreatedAt    time.Time  `gorm:"default:now()" json:"created_at"`
+	UpdatedAt    time.Time  `gorm:"default:now()" json:"updated_at"`
+	ProjectID    uuid.UUID  `gorm:"type:uuid;not null" json:"project_id"`
+	Title        string     `gorm:"type:varchar(255);not null" json:"title"`
+	Description  *string    `gorm:"type:text" json:"description,omitempty"`
+	CreatorID    uuid.UUID  `gorm:"type:uuid;not null" json:"creator_id"`
+	AssigneeID   *uuid.UUID `gorm:"type:uuid" json:"assignee_id,omitempty"`
+	StatusID     *uuid.UUID `gorm:"type:uuid" json:"status_id,omitempty"`
+	Priority     string     `gorm:"type:varchar(100);default:'medium'" json:"priority"`
+	StartDate    *time.Time `gorm:"default:now()" json:"start_date,omitempty"`
+	DueDate      *time.Time `json:"due_date,omitempty"`
+	ClosedAt     *time.Time `json:"closed_at,omitempty"`
+	ParentTaskID *uuid.UUID `gorm:"type:uuid" json:"parent_task_id,omitempty"`
 
-	Title       string `gorm:"not null" json:"title"`
-	Description string `json:"description"`
-
-	Status   TaskStatus   `gorm:"type:varchar(20);default:'todo'" json:"status"`
-	Priority TaskPriority `gorm:"type:varchar(10);default:'medium'" json:"priority"`
-	DueDate  *time.Time   `json:"due_date"`
-
-	UserID uuid.UUID `gorm:"type:uuid;not null" json:"user_id"`
-
-	ProjectID *uuid.UUID `gorm:"type:uuid" json:"project_id"`
-	Project   *Project   `gorm:"constraint:OnDelete:CASCADE;" json:"project,omitempty"`
+	// Relationships
+	Project     *Project       `gorm:"foreignKey:ProjectID" json:"project,omitempty"`
+	Creator     *User          `gorm:"foreignKey:CreatorID" json:"creator,omitempty"`
+	Assignee    *User          `gorm:"foreignKey:AssigneeID" json:"assignee,omitempty"`
+	Status      *ProjectStatus `gorm:"foreignKey:StatusID" json:"status,omitempty"`
+	ParentTask  *Task          `gorm:"foreignKey:ParentTaskID" json:"parent_task,omitempty"`
+	Subtasks    []*Task        `gorm:"foreignKey:ParentTaskID" json:"subtasks,omitempty"`
+	Tags        []*Tag         `gorm:"many2many:task_tags;" json:"tags,omitempty"`
+	Comments    []Comment      `gorm:"foreignKey:TaskID" json:"comments,omitempty"`
+	Changes     []Change       `gorm:"foreignKey:TaskID" json:"changes,omitempty"`
+	Attachments []Attachment   `gorm:"foreignKey:TaskID" json:"attachments,omitempty"`
 }
 
 func (t *Task) BeforeCreate(tx *gorm.DB) error {

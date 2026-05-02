@@ -2,7 +2,6 @@ package utils
 
 import (
 	"errors"
-	"log"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -14,8 +13,6 @@ type Claims struct {
 }
 
 func GenerateAccess(userID string, jwtSecret string) (string, error) {
-	log.Println("User ID in generating ", userID)
-
 	accessTokenExpirationTime := jwt.NewNumericDate(time.Now().Add(15 * time.Minute))
 	accessClaims := &Claims{
 		UserID: userID,
@@ -60,13 +57,10 @@ func ParseToken(tokenString, jwtSecret string) (*Claims, error) {
 		return nil, err
 	}
 
-	log.Println("Token Parse Success ", token.Valid)
-
 	if !token.Valid {
 		return nil, errors.New("invalid token")
 	}
 
-	log.Println("Claims ", claims.UserID)
 	return claims, nil
 }
 
