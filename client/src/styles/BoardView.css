@@ -1,0 +1,418 @@
+.board-view {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5em;
+}
+
+.board-header {
+    margin-bottom: 2em;
+}
+
+.board-controls {
+    display: flex;
+    gap: 1em;
+}
+
+.control-btn, .create-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border: 1px solid var(--border-color);
+    background: transparent;
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.control-btn:hover {
+    background-color: var(--bg-secondary);
+    border-color: var(--accent-primary);
+    color: var(--text-primary);
+}
+
+.create-btn {
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: var(--text-primary);
+}
+
+.create-btn:hover {
+    background-color: var(--accent-secondary);
+}
+
+.board-content {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+.priority-lane {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.lane-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 8px;
+    border-left: 4px solid;
+}
+
+.lane-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.lane-header .task-count {
+    color: var(--text-tertiary);
+    font-size: 14px;
+}
+
+.collapse-lane {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.collapse-lane:hover {
+    color: var(--text-primary);
+}
+
+/* Подсветка всех столбцов в активной линии */
+.priority-lane.active-lane .board-column {
+    border: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.priority-lane.active-lane .board-column.active-lane-column {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1);
+}
+
+/* Анимация для перетаскиваемой задачи */
+.draggable-task:active {
+    opacity: 0.7;
+    transform: scale(0.98);
+}
+
+/* Стили для линий, в которые нельзя перетаскивать */
+.priority-lane.disabled-lane {
+    opacity: 0.5;
+    pointer-events: none; /* Блокируем возможность взаимодействия */
+    filter: grayscale(0.5);
+    transition: all 0.2s;
+}
+
+/* Стили для столбцов, в которые нельзя перетаскивать */
+.board-column.disabled-column {
+    background-color: rgba(0, 0, 0, 0.02);
+    border: 1px dashed var(--border-color);
+    cursor: not-allowed;
+}
+
+.board-column.disabled-column .column-content {
+    opacity: 0.7;
+}
+
+/* Стили для столбцов, в которые можно перетаскивать */
+.board-column.drop-allowed {
+    border: 2px solid var(--accent-primary);
+    background-color: rgba(139, 92, 246, 0.05);
+    cursor: copy;
+}
+
+/* Кастомный курсор для перетаскиваемой задачи */
+.draggable-task[draggable="true"] {
+    cursor: grab;
+}
+
+.draggable-task[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+/* Подсказка при перетаскивании */
+.draggable-task.dragging {
+    opacity: 0.8;
+    transform: scale(0.98);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.board-column.drop-allowed {
+    animation: pulse-border 1.5s infinite;
+}
+
+/* Улучшенная визуализация запрета */
+.board-column.disabled-column .column-header {
+    color: var(--text-tertiary);
+}
+
+.board-column.disabled-column .status-indicator {
+    opacity: 0.3;
+}
+
+.lane-columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+    padding: 0 8px;
+    width: 100%;
+}
+
+.board-column {
+    background-color: var(--bg-secondary);
+    border-radius: 12px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    max-height: 500px;
+    border: 2px solid transparent;
+}
+
+.column-header {
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.column-header h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.column-header .task-count {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    margin-left: auto;
+}
+
+.add-task {
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    border-radius: 4px;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.add-task:hover {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.column-content {
+    flex: 1;
+    padding: 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 80px;
+    color: var(--text-tertiary);
+    font-size: 13px;
+}
+
+.draggable-task {
+    cursor: move;
+}
+
+.draggable-task:active {
+    opacity: 0.7;
+}
+
+.board-column.active-lane {
+    border: 2px solid var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+}
+
+.board-column.dragover {
+    border: 2px dashed var(--accent-primary);
+    background-color: rgba(139, 92, 246, 0.05);
+}
+
+.task-card {
+    background-color: rgba(10, 10, 15, 0.9);
+    border-radius: 1em;
+    padding: 12px;
+    position: relative;
+    transition: all 0.2s;
+    border: 1px solid var(--border-color);
+}
+
+.task-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transform: translateY(-1px);
+    background-color: rgba(139, 92, 246, 0.05);
+}
+
+.priority-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 8px 8px 0 0;
+}
+
+.task-card-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1em;
+}
+
+.task-description {
+    display: flex;
+    flex-direction: column;
+}
+
+.task-content {
+    margin-top: 0.25em;
+}
+
+.task-card-title-container {
+    display: flex;
+    flex-direction: row;
+    align-items: start;
+    justify-content: start;
+    gap: 4px
+}
+
+.task-card-subtask-flag {
+    display: flex;
+    flex-direction: row;
+    gap: 2px;
+    min-width: 14px;
+    min-height: 14px;
+    margin-left: 4px;
+}
+
+.task-card-title {
+    display: flex;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    text-decoration: none;
+    margin-bottom: 8px;
+    line-height: 1.4;
+    max-height: 2.8em;
+    overflow: hidden;
+    transition: color 0.2s;
+}
+
+.task-card-title:hover {
+    color: var(--accent-primary);
+    filter: brightness(1.2);
+}
+
+.task-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 8px;
+    opacity: 0.8;
+}
+
+.tag-text {
+    padding: 2px 8px;
+    background-color: var(--bg-secondary);
+    border-radius: 1em;
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.tag-more {
+    padding: 2px 8px;
+    font-size: 11px;
+    color: var(--text-tertiary);
+}
+
+.task-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.task-assignees {
+    display: flex;
+    align-items: center;
+    width: 2.5em;
+    height: 2.5em;
+}
+
+.assign-btn {
+    width: 100%;
+    height: 100%;
+    border: 1px dashed var(--border-color);
+    background: transparent;
+    border-radius: 50%;
+    padding: 4px;
+    color: var(--text-tertiary);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.task-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-tertiary);
+    font-size: 11px;
+}
+
+.meta-item.priority {
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-weight: 400;
+}
+
+.meta-item.priority svg {
+    margin-right: 2px;
+}
+
+.meta-item.overdue {
+    opacity: 0.9;
+    color: var(--error);
+}

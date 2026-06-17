@@ -1,0 +1,200 @@
+.attachment-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.attachment-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.attachment-label svg {
+    color: var(--text-tertiary);
+}
+
+.attachment-count {
+    margin-left: 4px;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    font-weight: normal;
+}
+
+.attachment-dropzone {
+    border: 2px dashed var(--border-color);
+    border-radius: 8px;
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background-color: var(--bg-primary);
+    position: relative;
+}
+
+.attachment-dropzone:hover {
+    border-color: var(--accent-primary);
+    background-color: var(--bg-secondary);
+}
+
+.attachment-dropzone.attachment-dragging {
+    border-color: var(--accent-primary);
+    background-color: rgba(139, 92, 246, 0.1);
+}
+
+.attachment-file-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.attachment-upload-icon {
+    color: var(--text-tertiary);
+    margin-bottom: 8px;
+}
+
+.attachment-dropzone-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.attachment-dropzone-primary {
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.attachment-dropzone-secondary {
+    color: var(--text-tertiary);
+    font-size: 12px;
+}
+
+.attachment-list {
+    margin-top: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.attachment-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.attachment-item:hover {
+    border-color: var(--accent-primary);
+}
+
+.attachment-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background-color: var(--bg-secondary);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+.attachment-icon-svg {
+    color: var(--text-secondary);
+}
+
+.attachment-item:hover .attachment-icon-svg {
+    color: var(--accent-primary);
+}
+
+.attachment-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.attachment-name {
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    transition: color 0.2s;
+    width: fit-content;
+}
+
+.attachment-name:hover {
+    color: var(--accent-primary);
+}
+
+.attachment-meta {
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 4px;
+    width: fit-content;
+}
+
+.attachment-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.attachment-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    border-radius: 4px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.attachment-btn:hover {
+    background-color: var(--bg-primary);
+}
+
+.attachment-preview:hover {
+    color: var(--info);
+}
+
+.attachment-download:hover {
+    color: var(--success);
+}
+
+.attachment-remove:hover {
+    color: var(--error);
+}
+
+/* Типы файлов */
+.attachment-item[data-type="image"] .attachment-icon-svg {
+    color: #10b981;
+}
+
+.attachment-item[data-type="pdf"] .attachment-icon-svg {
+    color: #ef4444;
+}
+
+.attachment-item[data-type="archive"] .attachment-icon-svg {
+    color: #8b5cf6;
+}

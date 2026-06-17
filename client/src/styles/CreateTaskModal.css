@@ -1,0 +1,426 @@
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    animation: modalFadeIn 0.2s ease;
+}
+
+.create-task-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    background-color: var(--bg-secondary);
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    z-index: 1001;
+    animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -45%);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    background-color: var(--bg-secondary);
+    z-index: 10;
+}
+
+.modal-header h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.modal-close-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.modal-close-btn:hover {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.modal-form {
+    padding: 24px;
+}
+
+.modal-form-section {
+    margin-bottom: 24px;
+}
+
+.modal-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.modal-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+}
+
+.modal-form-group label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.modal-form-group label svg {
+    color: var(--text-tertiary);
+}
+
+.modal-required {
+    color: var(--error);
+    margin-left: 4px;
+}
+
+.modal-input,
+.modal-select,
+.modal-textarea {
+    padding: 10px 12px;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.modal-input:focus,
+.modal-select:focus,
+.modal-textarea:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
+.modal-input-error {
+    padding: 10px 12px;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--error);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.modal-input-error:focus {
+    outline: none;
+    border-color: var(--error);
+}
+
+.modal-textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.modal-error-message {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--error);
+    font-size: 11px;
+    margin-top: 4px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 32px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.modal-cancel-btn {
+    padding: 10px 20px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.modal-cancel-btn:hover {
+    background-color: var(--bg-primary);
+    border-color: var(--accent-primary);
+    color: var(--text-primary);
+}
+
+.modal-create-btn {
+    padding: 10px 24px;
+    background-color: var(--accent-primary);
+    border: none;
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.modal-create-btn:hover {
+    background-color: var(--accent-secondary);
+}
+
+/* Стили для скроллбара модального окна */
+.create-task-modal::-webkit-scrollbar {
+    width: 8px;
+}
+
+.create-task-modal::-webkit-scrollbar-track {
+    background: var(--bg-primary);
+    border-radius: 4px;
+}
+
+.create-task-modal::-webkit-scrollbar-thumb {
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+}
+
+.create-task-modal::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-primary);
+}
+
+/* Стили для assignee */
+.modal-assignee-selector-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+}
+
+.modal-assignee-selector-input {
+    min-height: 45px;
+}
+
+.modal-assignee-selector-cross {
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.modal-assignee-selector-cross:hover {
+    background-color: var(--bg-tertiary);
+}
+
+.modal-assignee {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 1em;
+}
+
+.modal-selected-assignee-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-selected-assignee {
+    display: flex;
+    align-items: center;
+    padding: 0.5em 12px;
+    border-radius: 0.5em;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    font-size: 14px;
+    min-height: 45px;
+}
+
+.modal-selected-assignee div {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+.modal-assign-btn {
+    width: fit-content;
+    margin: 4px 0 0 1em;
+    color: var(--accent-primary);
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+.modal-assign-btn:hover {
+    color: rgba(139, 92, 246, 0.7);
+}
+
+/* Стили для тегов */
+.modal-tag-renderer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.modal-tag-color-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.modal-selected-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 0.5em;
+}
+
+.modal-tag-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 8px;
+    background-color: var(--bg-secondary);
+    border-radius: 1em;
+    font-size: 12px;
+    color: var(--text-secondary);
+    position: relative;
+}
+
+.modal-tag-background {
+    border-radius: 20%;
+}
+
+.modal-tag-text {
+    filter: brightness(2);
+    position: relative;
+    z-index: 1;
+    margin-right: 4px;
+}
+
+.modal-tag-remove {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    border: none;
+    background: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 4px;
+    z-index: 1;
+}
+
+.modal-tag-remove:hover {
+    filter: brightness(1.5);
+}
+
+/* Стили для priority */
+.modal-priority-renderer {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+}
+
+.priority-dropdown .selector-item {
+    margin-bottom: 4px;
+}
+
+.priority-dropdown .selected {
+    border-radius: 4px;
+    background: rgba(139, 92, 246, 0.1);
+}
+
+.priority-dropdown .highlighted {
+    border-radius: 4px;
+}
+
+/* Стили для add buttons */
+.modal-add-tag,
+.modal-add-attachment {
+    background: none;
+    border: 1px dashed var(--border-color);
+    border-radius: 16px;
+    padding: 4px 10px;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.modal-add-tag:hover,
+.modal-add-attachment:hover {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+/* Стили для date inputs */
+.modal-date-input {
+    padding: 10px 12px;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.modal-date-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
+.modal-date-input::-webkit-calendar-picker-indicator {
+    filter: invert(0.5);
+    cursor: pointer;
+}
