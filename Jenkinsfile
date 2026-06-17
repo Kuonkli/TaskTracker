@@ -13,9 +13,8 @@ pipeline {
 
     environment {
         DOCKER_USER = 'kuonkli'
-        DEPLOY_HOST = '85.239.61.190'
         DEPLOY_USER = 'deploy'
-        
+        DEPLOY_HOST = credentials('deploy-host')
         DB_NAME = credentials('db-name')
         DB_USER = credentials('db-user')
         DB_PASSWORD = credentials('db-user-password')
@@ -29,16 +28,6 @@ pipeline {
     }
 
     stages {
-        stage('Checkout') {
-            when { expression { params.ACTION in ['init-db', 'migrate', 'build', 'deploy', 'full'] } }
-            steps {
-                git branch: params.BRANCH, 
-                    url: 'https://github.com/Kuonkli/TaskTracker.git', 
-                    credentialsId: 'github-token'
-                sh 'echo "📦 Код скачан! Ветка: ${BRANCH}"'
-            }
-        }
-
         stage('Build Backend') {
             when { expression { params.ACTION in ['build', 'full'] } }
             steps {
