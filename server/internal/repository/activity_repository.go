@@ -12,8 +12,8 @@ import (
 )
 
 type ActivityRepository interface {
-	GetTaskActivities(ctx context.Context, projectID, taskID uuid.UUID, limit int, offset int) ([]dto.ActivityItem, int64, error)
 	GetProjectActivities(ctx context.Context, projectID uuid.UUID, limit, offset int) ([]dto.ActivityItem, int64, error)
+	GetTaskActivities(ctx context.Context, projectID, taskID uuid.UUID, limit int, offset int) ([]dto.ActivityItem, int64, error)
 	GetUserActivities(ctx context.Context, projectID, userID uuid.UUID, limit, offset int) ([]dto.ActivityItem, int64, error)
 }
 

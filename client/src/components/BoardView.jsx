@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Plus, Settings, ChevronDown } from 'lucide-react';
 import '../styles/BoardView.css';
-import CreateTaskModal from "./CreateTaskModal";
+import CreateTaskModal from "./modals/CreateTaskModal";
 import { mockTags, mockUsers } from "../mocks";
 import TaskCard from "./TaskCard";
 import { projectService } from '../services/projectService';
@@ -73,7 +73,7 @@ export default function BoardView() {
                     updated_at: task.updated_at,
                     tags: task.tags,
                     parent_task_id: task.parent_task_id,
-                    changes: task.changes,
+                    metrics: task.metrics,
                 }))
             }));
 
@@ -193,10 +193,10 @@ export default function BoardView() {
                     <div className="board-controls">
                         <button
                             className="control-btn"
-                            onClick={() => navigate(`/project/${projectId}/settings`)}
+                            onClick={() => navigate(`/projects/${projectId}/settings`)}
                         >
                             <Settings size={18}/>
-                            <span>Board settings</span>
+                            <span>Project settings</span>
                         </button>
                         <button
                             className="create-btn"

@@ -4,8 +4,10 @@ import (
 	"net/http"
 	"strconv"
 	"task-tracker/internal/dto"
+	mwcontext "task-tracker/internal/handlers/middleware"
 	"task-tracker/internal/models"
 	"task-tracker/internal/service"
+	"task-tracker/pkg/exceptions"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -30,23 +32,22 @@ func NewStatusHandler(statusService service.StatusService) StatusHandler {
 }
 
 // CreateStatus создает новый статус в проекте
-// POST /api/projects/:project_id/statuses
 func (h *statusHandler) CreateStatus(c *gin.Context) {
-	projectID, err := uuid.Parse(c.Param("project_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid project id"})
+	ctx := mwcontext.GetValidationContext(c)
+	if ctx.ProjectID == uuid.Nil {
+		c.JSON(exceptions.NewApiError(exceptions.BadRequest("project id required")))
 		return
 	}
 
 	var req dto.CreateStatusRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(exceptions.NewApiError(err))
 		return
 	}
 
-	status, err := h.statusService.Create(c.Request.Context(), projectID, req)
+	status, err := h.statusService.Create(c.Request.Context(), ctx.ProjectID, req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(exceptions.NewApiError(err))
 		return
 	}
 
@@ -54,17 +55,16 @@ func (h *statusHandler) CreateStatus(c *gin.Context) {
 }
 
 // GetStatus возвращает статус по ID
-// GET /api/statuses/:status_id
 func (h *statusHandler) GetStatus(c *gin.Context) {
-	statusID, err := uuid.Parse(c.Param("status_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid status id"})
+	ctx := mwcontext.GetValidationContext(c)
+	if ctx.StatusID == uuid.Nil {
+		c.JSON(exceptions.NewApiError(exceptions.BadRequest("status id required")))
 		return
 	}
 
-	status, err := h.statusService.GetByID(c.Request.Context(), statusID)
+	status, err := h.statusService.GetByID(c.Request.Context(), ctx.StatusID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		c.JSON(exceptions.NewApiError(err))
 		return
 	}
 
@@ -72,23 +72,22 @@ func (h *statusHandler) GetStatus(c *gin.Context) {
 }
 
 // UpdateStatus обновляет статус
-// PUT /api/statuses/:status_id
 func (h *statusHandler) UpdateStatus(c *gin.Context) {
-	statusID, err := uuid.Parse(c.Param("status_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid status id"})
+	ctx := mwcontext.GetValidationContext(c)
+	if ctx.StatusID == uuid.Nil {
+		c.JSON(exceptions.NewApiError(exceptions.BadRequest("status id required")))
 		return
 	}
 
 	var req dto.UpdateStatusRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(exceptions.NewApiError(err))
 		return
 	}
 
-	status, err := h.statusService.Update(c.Request.Context(), statusID, req)
+	status, err := h.statusService.Update(c.Request.Context(), ctx.StatusID, req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(exceptions.NewApiError(err))
 		return
 	}
 
@@ -96,16 +95,15 @@ func (h *statusHandler) UpdateStatus(c *gin.Context) {
 }
 
 // DeleteStatus удаляет статус
-// DELETE /api/statuses/:status_id
 func (h *statusHandler) DeleteStatus(c *gin.Context) {
-	statusID, err := uuid.Parse(c.Param("status_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid status id"})
+	ctx := mwcontext.GetValidationContext(c)
+	if ctx.StatusID == uuid.Nil {
+		c.JSON(exceptions.NewApiError(exceptions.BadRequest("status id required")))
 		return
 	}
 
-	if err := h.statusService.Delete(c.Request.Context(), statusID); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := h.statusService.Delete(c.Request.Context(), ctx.StatusID); err != nil {
+		c.JSON(exceptions.NewApiError(err))
 		return
 	}
 
@@ -113,20 +111,19 @@ func (h *statusHandler) DeleteStatus(c *gin.Context) {
 }
 
 // GetProjectStatuses возвращает все статусы проекта
-// GET /api/projects/:project_id/statuses
 func (h *statusHandler) GetProjectStatuses(c *gin.Context) {
-	projectID, err := uuid.Parse(c.Param("project_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid project id"})
+	ctx := mwcontext.GetValidationContext(c)
+	if ctx.ProjectID == uuid.Nil {
+		c.JSON(exceptions.NewApiError(exceptions.BadRequest("project id required")))
 		return
 	}
 
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 
-	statuses, total, err := h.statusService.List(c.Request.Context(), projectID, limit, offset)
+	statuses, total, err := h.statusService.List(c.Request.Context(), ctx.ProjectID, limit, offset)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(exceptions.NewApiError(err))
 		return
 	}
 

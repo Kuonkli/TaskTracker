@@ -1,37 +1,25 @@
 import { Link, useParams } from 'react-router-dom';
 import {
     Flag,
-    MessageSquare,
-    CheckSquare,
     UserX,
     Blocks,
-    ReplaceAll,
-    ArrowUpDown,
-    GitBranch,
-    GitPullRequestArrow
+    GitPullRequestArrow, MessageSquare
 } from 'lucide-react';
 import '../styles/BoardView.css';
 import { CustomUserAvatar, PriorityIcon } from "./CommonComponents";
 
-const priorityColors = {
-    critical: 'var(--error)',
-    high: 'var(--warning)',
-    medium: 'var(--info)',
-    low: 'var(--text-tertiary)',
-};
-
 export default function TaskCard({ task }) {
     const { projectId } = useParams(); // Получаем projectId из URL
     const priorities = [
-        { id: 'critical', label: 'Critical', color: 'var(--error)' },
-        { id: 'high', label: 'High', color: 'var(--warning)' },
-        { id: 'medium', label: 'Medium', color: 'var(--info)' },
-        { id: 'low', label: 'Low', color: 'var(--text-tertiary)' }
+        { id: 'critical', label: 'Critical', color: '#EF4444' },
+        { id: 'high', label: 'High', color: '#F59E0B' },
+        { id: 'medium', label: 'Medium', color: '#3B82F6' },
+        { id: 'low', label: 'Low', color: '#6B7280' }
     ];
     const taskPriority = priorities.find(p => p.id === task.priority);
 
     // Формируем правильный путь к задаче
-    const taskPath = `/project/${projectId || task.project_id}/task/${task.id}`;
+    const taskPath = `/projects/${projectId || task.project_id}/task/${task.id}`;
 
     return (
         <div className="task-card" /*style={{ borderColor: priorityColors[task.priority] }}*/>
@@ -75,9 +63,9 @@ export default function TaskCard({ task }) {
                 </div>
 
                 <div className="task-footer">
-                    <div className="meta-item">
-                        <PriorityIcon size={16} priorityId={task.priority} priorities={priorities}/>
-                        <span style={{ color: taskPriority?.color, opacity: 0.8 }}>{taskPriority?.label?.toUpperCase()}</span>
+                    <div className={`meta-item priority`} style={{ backgroundColor: `${taskPriority?.color}30` }}>
+                        <PriorityIcon priorityId={task.priority} priorities={priorities}/>
+                        <span style={{ color: taskPriority?.color }}>{taskPriority?.label?.toUpperCase()}</span>
                     </div>
                     <div className="task-meta">
                         <div className="meta-item">
@@ -91,12 +79,22 @@ export default function TaskCard({ task }) {
                         {task.due_date && (
                             <div className={`meta-item ${new Date(task.due_date) < new Date() ? 'overdue' : ''}`}>
                                 <Flag size={14}/>
-                                <span>{new Date(task.due_date).toLocaleDateString('ru-RU', {day:'numeric', month:'numeric', year:'numeric'})}</span>
+                                <span>{new Date(task.due_date).toLocaleDateString('ru-RU', {
+                                    day: 'numeric',
+                                    month: 'numeric',
+                                    year: 'numeric'
+                                })}</span>
+                            </div>
+                        )}
+                        {!task.parent_task_id && (
+                            <div className="meta-item">
+                                <Blocks size={14}/>
+                                <span>{task?.metrics.subtasks_count || 0}</span>
                             </div>
                         )}
                         <div className="meta-item">
-                            <GitPullRequestArrow size={14}/>
-                            <span>{task?.changes?.length || 0}</span>
+                            <MessageSquare size={14}/>
+                            <span>{task?.metrics.comments_count || 0}</span>
                         </div>
                     </div>
                 </div>

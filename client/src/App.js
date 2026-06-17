@@ -18,6 +18,7 @@ import Preloader from "./components/CommonComponents";
 import { projectService } from "./services/projectService";
 import {ToastProvider} from "./contexts/ToastContext";
 import {ToastInitializer} from "./components/Toast/ToastInitializer";
+import ProjectSettingsPage from "./components/ProjectSettingsPage";
 
 function App() {
     const [isActivityOpen, setIsActivityOpen] = useState(false);
@@ -85,19 +86,28 @@ function App() {
         setProjectsLoaded(false);
     };
 
-    const handleProjectCreated = (newProject) => {
-        setUserProjects(prev => {
-            const updated = [...prev, newProject];
-            setProjectsLoaded(true);
-            return updated;
-        });
+    const handleProjectCreated = async (newProject) => {
+        try {
+            const fullProject = await projectService.getProjectDetails(newProject.id);
+
+            setUserProjects(prev => {
+                const updated = [...prev, fullProject];
+                setProjectsLoaded(true);
+                return updated;
+            });
+        } catch (error) {
+            setUserProjects(prev => {
+                const updated = [...prev, newProject];
+                setProjectsLoaded(true);
+                return updated;
+            });
+        }
     };
 
     const getStartRoute = () => {
         if (!isAuthenticated) return '/login';
-        if (userProjects.length === 0) return '/project/new';
+        if (userProjects.length === 0) return '/projects/new';
 
-        // Находим проект с самым свежим last_seen_at для текущего пользователя
         const projectsWithLastSeen = userProjects.map(project => {
             // Ищем запись текущего пользователя в members
             const userMember = project.members?.find(m => m.user_id === currentUser?.id);
@@ -106,14 +116,12 @@ function App() {
             return { project, lastSeen };
         });
 
-        // Сортируем по lastSeen (новые сверху)
         projectsWithLastSeen.sort((a, b) => new Date(b.lastSeen) - new Date(a.lastSeen));
 
         const lastProject = projectsWithLastSeen[0].project;
-        return `/project/${lastProject.id}/board`;
+        return `/projects/${lastProject.id}/board`;
     };
 
-    // Показываем загрузку только пока идет проверка аутентификации ИЛИ загрузка проектов
     if (isLoading || !authChecked || (isAuthenticated && !projectsLoaded)) {
         return (
             <div className="app-loading-container">
@@ -158,7 +166,7 @@ function App() {
                         }
                     />
                     <Route
-                        path="/project/new"
+                        path="/projects/new"
                         element={
                             <ProtectedRoute isAuthenticated={isAuthenticated}>
                                 <CreateProjectPage
@@ -169,7 +177,7 @@ function App() {
                         }
                     />
                     <Route
-                        path="/project/:projectId"
+                        path="/projects/:projectId"
                         element={
                             <ProtectedRoute isAuthenticated={isAuthenticated}>
                                 <ProjectLayout
@@ -188,8 +196,9 @@ function App() {
                         <Route path="list" element={<ListView />} />
                         <Route path="summary" element={<SummaryView tasks={mockTasks} users={mockUsers} />} />
                         <Route path="task/:taskId" element={<TaskPage currentUser={currentUser}/>} />
-                        <Route path="profile" element={<ProfilePage user={currentUser} />} />
-                        <Route path="member/:userId" element={<ProfilePage user={currentUser} />} />
+                        <Route path="profile" element={<ProfilePage />} />
+                        <Route path="member/:userId" element={<ProfilePage />} />
+                        <Route path="settings" element={<ProjectSettingsPage user={currentUser} />} />
                     </Route>
                     <Route path="*" element={<NotFoundPage />} />
                 </Routes>
@@ -213,9 +222,9 @@ function ProjectLayout({ user, onLogout, isActivityOpen, setIsActivityOpen, acti
 
     useEffect(() => {
         if (!currentProject && projects.length > 0) {
-            navigate(`/project/${projects[0].id}/board`, { replace: true });
+            navigate(`/projects/${projects[0].id}/board`, { replace: true });
         } else if (!currentProject && projects.length === 0) {
-            navigate('/project/new', { replace: true });
+            navigate('/projects/new', { replace: true });
         }
     }, [currentProject, projects, navigate]);
 
@@ -241,10 +250,15 @@ function ProjectLayout({ user, onLogout, isActivityOpen, setIsActivityOpen, acti
             <div className="main-layout">
                 <Sidebar
                     user={user}
-                    teamMembers={currentProject?.members}
+                    teamMembers={currentProject?.members || []}
                 />
                 <main className="content-area">
-                    <Outlet />
+                    <Outlet context={{
+                        onLogout,
+                        currentUser: user,
+                        members: currentProject?.members,
+                        project: currentProject
+                    }} />
                 </main>
                 <RightSidebar
                     events={activityEvents}

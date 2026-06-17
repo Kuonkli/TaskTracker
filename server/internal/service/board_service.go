@@ -2,11 +2,15 @@ package service
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"github.com/google/uuid"
+	"gorm.io/datatypes"
 	"task-tracker/internal/dto"
 	"task-tracker/internal/models"
 	"task-tracker/internal/uow"
 	"task-tracker/pkg/exceptions"
+	pkg "task-tracker/pkg/parser"
 )
 
 type BoardService interface {
@@ -37,27 +41,9 @@ func (s *boardService) GetBoard(ctx context.Context, projectID uuid.UUID) (*dto.
 		return nil, err
 	}
 
-	lanes, err := w.BoardRepo().GetLanesByProjectID(ctx, projectID)
+	lanesWithTasks, err := w.BoardRepo().GetLanesWithTasks(ctx, projectID)
 	if err != nil {
 		return nil, err
-	}
-
-	lanesWithTasks := make([]dto.LaneWithTasksResponse, 0, len(lanes))
-	for _, lane := range lanes {
-		laneTasks, err := w.BoardRepo().GetLaneTasks(ctx, lane.ID)
-		if err != nil {
-			return nil, err
-		}
-		lanesWithTasks = append(lanesWithTasks, dto.LaneWithTasksResponse{
-			ID:            lane.ID,
-			ProjectID:     lane.ProjectID,
-			Title:         lane.Title,
-			Description:   lane.Description,
-			Position:      lane.Position,
-			Color:         lane.Color,
-			RuleCondition: lane.RuleCondition,
-			Tasks:         laneTasks,
-		})
 	}
 
 	return &dto.Board{
@@ -111,7 +97,8 @@ func (s *boardService) CreateColumn(ctx context.Context, projectID uuid.UUID, re
 		return nil, err
 	}
 
-	return uoWTx.BoardRepo().GetColumnByID(ctx, column.ID)
+	w := s.uowFactory.New()
+	return w.BoardRepo().GetColumnByID(ctx, column.ID)
 }
 
 func (s *boardService) UpdateColumn(ctx context.Context, columnID uuid.UUID, req dto.UpdateColumnRequest) (*models.Column, error) {
@@ -195,13 +182,20 @@ func (s *boardService) ReorderColumns(ctx context.Context, projectID uuid.UUID, 
 		}
 	}()
 
+	// Проверяем что колонки существуют и принадлежат проекту — одним запросом
+	columns, err := uoWTx.BoardRepo().GetColumnsByProjectID(ctx, projectID)
+	if err != nil {
+		uoWTx.Rollback()
+		return err
+	}
+
+	columnMap := make(map[uuid.UUID]bool)
+	for _, col := range columns {
+		columnMap[col.ID] = true
+	}
+
 	for id := range req.Positions {
-		column, err := uoWTx.BoardRepo().GetColumnByID(ctx, id)
-		if err != nil {
-			uoWTx.Rollback()
-			return exceptions.ErrColumnNotFound
-		}
-		if column.ProjectID != projectID {
+		if !columnMap[id] {
 			uoWTx.Rollback()
 			return exceptions.ErrColumnNotFound
 		}
@@ -226,13 +220,43 @@ func (s *boardService) CreateLane(ctx context.Context, projectID uuid.UUID, req 
 		}
 	}()
 
+	// Парсим строку правила в структуру
+	parser := pkg.NewRuleParser(req.RuleCondition)
+	ruleNode, err := parser.Parse()
+	if err != nil {
+		uoWTx.Rollback()
+		return nil, fmt.Errorf("invalid rule: %w", err)
+	}
+
+	// Преобразуем в JSON для хранения
+	ruleJSON, err := json.Marshal(ruleNode)
+	if err != nil {
+		uoWTx.Rollback()
+		return nil, fmt.Errorf("failed to marshal rule: %w", err)
+	}
+
 	lanes, err := uoWTx.BoardRepo().GetLanesByProjectID(ctx, projectID)
 	if err != nil {
 		uoWTx.Rollback()
 		return nil, err
 	}
 
-	position := len(lanes) + 1
+	maxPosition := 0
+	for i, lane := range lanes {
+		if lane.Position > maxPosition {
+			maxPosition = lane.Position
+		}
+		// На всякий случай обновляем позицию, если она не совпадает с индексом
+		if lane.Position != i+1 {
+			lane.Position = i + 1
+			if err := uoWTx.BoardRepo().UpdateLane(ctx, &lane); err != nil {
+				uoWTx.Rollback()
+				return nil, err
+			}
+		}
+	}
+
+	position := maxPosition + 1
 
 	lane := &models.Lane{
 		ProjectID:     projectID,
@@ -240,7 +264,7 @@ func (s *boardService) CreateLane(ctx context.Context, projectID uuid.UUID, req 
 		Description:   req.Description,
 		Position:      position,
 		Color:         req.Color,
-		RuleCondition: req.RuleCondition,
+		RuleCondition: datatypes.JSON(ruleJSON), // ← теперь работает
 	}
 
 	if err = uoWTx.BoardRepo().CreateLane(ctx, lane); err != nil {
@@ -252,7 +276,8 @@ func (s *boardService) CreateLane(ctx context.Context, projectID uuid.UUID, req 
 		return nil, err
 	}
 
-	return uoWTx.BoardRepo().GetLaneByID(ctx, lane.ID)
+	w := s.uowFactory.New()
+	return w.BoardRepo().GetLaneByID(ctx, lane.ID)
 }
 
 func (s *boardService) UpdateLane(ctx context.Context, laneID uuid.UUID, req dto.UpdateLaneRequest) (*models.Lane, error) {
@@ -282,10 +307,22 @@ func (s *boardService) UpdateLane(ctx context.Context, laneID uuid.UUID, req dto
 		lane.Color = *req.Color
 	}
 	if req.RuleCondition != nil {
-		lane.RuleCondition = req.RuleCondition
-	}
-	if req.Position != nil {
-		lane.Position = *req.Position
+		// Парсим строку правила
+		parser := pkg.NewRuleParser(*req.RuleCondition)
+		ruleNode, err := parser.Parse()
+		if err != nil {
+			uoWTx.Rollback()
+			return nil, fmt.Errorf("invalid rule: %w", err)
+		}
+
+		// Преобразуем в JSON
+		ruleJSON, err := json.Marshal(ruleNode)
+		if err != nil {
+			uoWTx.Rollback()
+			return nil, fmt.Errorf("failed to marshal rule: %w", err)
+		}
+
+		lane.RuleCondition = datatypes.JSON(ruleJSON)
 	}
 
 	if err = uoWTx.BoardRepo().UpdateLane(ctx, lane); err != nil {
@@ -297,7 +334,8 @@ func (s *boardService) UpdateLane(ctx context.Context, laneID uuid.UUID, req dto
 		return nil, err
 	}
 
-	return uoWTx.BoardRepo().GetLaneByID(ctx, lane.ID)
+	w := s.uowFactory.New()
+	return w.BoardRepo().GetLaneByID(ctx, lane.ID)
 }
 
 func (s *boardService) DeleteLane(ctx context.Context, laneID uuid.UUID) error {
@@ -335,13 +373,20 @@ func (s *boardService) ReorderLanes(ctx context.Context, projectID uuid.UUID, re
 		}
 	}()
 
+	// Проверяем что лейны существуют и принадлежат проекту — одним запросом
+	lanes, err := uoWTx.BoardRepo().GetLanesByProjectID(ctx, projectID)
+	if err != nil {
+		uoWTx.Rollback()
+		return err
+	}
+
+	laneMap := make(map[uuid.UUID]bool)
+	for _, lane := range lanes {
+		laneMap[lane.ID] = true
+	}
+
 	for id := range req.Positions {
-		lane, err := uoWTx.BoardRepo().GetLaneByID(ctx, id)
-		if err != nil {
-			uoWTx.Rollback()
-			return exceptions.ErrLaneNotFound
-		}
-		if lane.ProjectID != projectID {
+		if !laneMap[id] {
 			uoWTx.Rollback()
 			return exceptions.ErrLaneNotFound
 		}

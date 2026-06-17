@@ -99,10 +99,10 @@
     display: flex;
     align-items: center;
     padding: 4px 6px;
-    color: var(--accent-primary);
-    background-color: var(--bg-tertiary);
     font-size: 11px;
+    color: var(--accent-primary);
     border: 1px solid var(--accent-primary);
+    background-color: var(--bg-tertiary);
     border-radius: 2em;
 }
 

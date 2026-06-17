@@ -77,7 +77,7 @@ func (r *projectMemberRepo) List(ctx context.Context, filter dto.ProjectMemberFi
 
 func (r *projectMemberRepo) FindByProjectID(ctx context.Context, projectID uuid.UUID) ([]models.ProjectMember, error) {
 	var members []models.ProjectMember
-	err := r.db.WithContext(ctx).Preload("User").Where("project_id = ?", projectID).Find(&members).Error
+	err := r.db.WithContext(ctx).Preload("User").Preload("GrantedBy").Where("project_id = ?", projectID).Find(&members).Error
 	return members, err
 }
 

@@ -65,7 +65,8 @@ func (s *statusService) Create(ctx context.Context, projectID uuid.UUID, req dto
 		return nil, err
 	}
 
-	return uoWTx.StatusRepo().FindByID(ctx, status.ID)
+	w := s.uowFactory.New()
+	return w.StatusRepo().FindByID(ctx, status.ID)
 }
 
 func (s *statusService) GetByID(ctx context.Context, id uuid.UUID) (*models.ProjectStatus, error) {
@@ -115,8 +116,8 @@ func (s *statusService) Update(ctx context.Context, id uuid.UUID, req dto.Update
 	if err = uoWTx.Commit(ctx); err != nil {
 		return nil, err
 	}
-
-	return uoWTx.StatusRepo().FindByID(ctx, id)
+	w := s.uowFactory.New()
+	return w.StatusRepo().FindByID(ctx, id)
 }
 
 func (s *statusService) Delete(ctx context.Context, id uuid.UUID) error {

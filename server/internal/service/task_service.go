@@ -293,12 +293,13 @@ func (s *taskService) Update(ctx context.Context, taskID, userID uuid.UUID, req 
 		}
 	}
 	if req.StatusID != nil {
+		now := time.Now().UTC()
 		if reqStatus.StatusType == "completed" || reqStatus.StatusType == "cancelled" {
-			now := time.Now().UTC()
 			task.ClosedAt = &now
 		} else {
 			task.ClosedAt = nil
 		}
+		task.StatusChangedAt = &now
 		task.StatusID = req.StatusID
 	}
 	if req.Priority != nil {

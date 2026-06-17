@@ -9,6 +9,7 @@ import (
 	"task-tracker/internal/handlers"
 	"task-tracker/internal/router"
 	"task-tracker/internal/service"
+	"task-tracker/pkg/storage"
 	"time"
 )
 
@@ -38,8 +39,18 @@ func main() {
 		log.Fatal("JWT secret key not found")
 	}
 
+	uploadsPath := os.Getenv("UPLOADS_PATH")
+	if uploadsPath == "" {
+		uploadsPath = "./uploads"
+	}
+	uploadsURL := os.Getenv("UPLOADS_URL")
+	if uploadsURL == "" {
+		uploadsURL = "/api/attachments"
+	}
+	fileStorage, _ := storage.NewLocalFileStorage(uploadsPath, uploadsURL)
+
 	// Инициализируем сервисы
-	newServices := service.NewServices(DB)
+	newServices := service.NewServices(DB, fileStorage)
 
 	// Инициализируем хендлеры
 	newHandlers := handlers.NewHandlers(newServices, jwtKey)
@@ -49,13 +60,18 @@ func main() {
 
 	server := r.Setup()
 
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
 	// Запускаем сервер
 	fmt.Printf("%s | %s %s\n",
 		time.Now().Format("2006/01/02 - 15:04:05"),
 		"Server starting on",
-		":8080",
+		port,
 	)
-	if err = server.Run(":8080"); err != nil {
+	if err = server.Run(":" + port); err != nil {
 		log.Fatal("Failed to start server:", err)
 	}
 }

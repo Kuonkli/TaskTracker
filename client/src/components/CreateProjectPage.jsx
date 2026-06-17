@@ -238,17 +238,11 @@ export default function CreateProjectPage({ user, onProjectCreated }) {
                 tags: tags
             };
 
-            const response = await projectService.createProject(payload)
+            const newProject = await projectService.createProject(payload)
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw { response: { data: errorData } };
-            }
-
-            const newProject = await response.json();
             showToast('Project created successfully!', 'success');
             onProjectCreated?.(newProject);
-            navigate(`/project/${newProject.id}/board`);
+            navigate(`/projects/${newProject.id}/board`);
         } catch (error) {
             handleApiError(error);
         } finally {

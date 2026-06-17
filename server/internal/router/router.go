@@ -126,10 +126,12 @@ func (r *Router) Setup() *gin.Engine {
 	// ========================================
 
 	// User routes
+	registrar.RegisterProtected("GET", "/api/users/search", r.handlers.User.SearchUser)
 	registrar.RegisterProtected("GET", "/api/user/profile", r.handlers.User.GetProfile)
 	registrar.RegisterProtected("PUT", "/api/user/profile", r.handlers.User.UpdateProfile)
 	registrar.RegisterProtected("GET", "/api/user/tasks", r.handlers.Task.GetUserTasks)
 	registrar.RegisterProtected("GET", "/api/user/projects", r.handlers.Project.GetUserProjects)
+	registrar.RegisterProtected("POST", "/api/logout", r.handlers.User.Logout)
 
 	// Project creation
 	registrar.RegisterProtected("POST", "/api/projects", r.handlers.Project.CreateCustomProject)
@@ -146,6 +148,7 @@ func (r *Router) Setup() *gin.Engine {
 	registrar.RegisterProtected("GET", "/api/projects/:project_id/board", r.handlers.Board.GetBoard)
 	registrar.RegisterProtected("POST", "/api/projects/:project_id/leave", r.handlers.Member.LeaveProject)
 	registrar.RegisterProtected("POST", "/api/projects/:project_id/transfer-ownership", r.handlers.Member.TransferOwnership)
+	registrar.RegisterProtected("GET", "/api/projects/:project_id/activities", r.handlers.TaskActivity.GetProjectActivities)
 
 	// Members
 	registrar.RegisterProtected("GET", "/api/projects/:project_id/profile", r.handlers.Member.GetUserProjectProfile)
@@ -181,33 +184,35 @@ func (r *Router) Setup() *gin.Engine {
 	registrar.RegisterProtected("GET", "/api/projects/:project_id/tasks/:task_id/comments", r.handlers.TaskActivity.GetTaskComments)
 	registrar.RegisterProtected("GET", "/api/projects/:project_id/tasks/:task_id/changes", r.handlers.TaskActivity.GetTaskChanges)
 
-	/*
-		TODO: Реализовать
-		registrar.RegisterProtected("GET", "/api/projects/:project_id/tasks/:task_id/comments/:comment_id", r.handlers.TaskActivity.GetComment)
-		registrar.RegisterProtected("POST", "/api/projects/:project_id/tasks/:task_id/comments", r.handlers.TaskActivity.CreateComment)
-		registrar.RegisterProtected("PUT", "/api/projects/:project_id/tasks/:task_id/comments/:comment_id", r.handlers.TaskActivity.UpdateComment)
-		registrar.RegisterProtected("DELETE", "/api/projects/:project_id/tasks/:task_id/comments/:comment_id", r.handlers.TaskActivity.DeleteComment)
+	//registrar.RegisterProtected("GET", "/api/projects/:project_id/tasks/:task_id/comments/:comment_id", r.handlers.TaskActivity.)
+	registrar.RegisterProtected("POST", "/api/projects/:project_id/tasks/:task_id/comments", r.handlers.TaskActivity.AddComment)
+	registrar.RegisterProtected("PUT", "/api/projects/:project_id/tasks/:task_id/comments/:comment_id", r.handlers.TaskActivity.UpdateComment)
+	registrar.RegisterProtected("DELETE", "/api/projects/:project_id/tasks/:task_id/comments/:comment_id", r.handlers.TaskActivity.DeleteComment)
 
-		// Lanes (Kanban дорожки)
-		registrar.RegisterProtected("GET", "/api/projects/:project_id/lanes", r.handlers.Lanes.GetProjectLanes)
-		registrar.RegisterProtected("POST", "/api/projects/:project_id/lanes", r.handlers.Lane.CreateLane)
-		registrar.RegisterProtected("GET", "/api/projects/:project_id/lanes/:lane_id", r.handlers.Lane.GetLane)
-		registrar.RegisterProtected("PUT", "/api/projects/:project_id/lanes/:lane_id", r.handlers.Lane.UpdateLane)
-		registrar.RegisterProtected("DELETE", "/api/projects/:project_id/lanes/:lane_id", r.handlers.Lane.DeleteLane)
+	// TODO: Реализовать
+	// Lanes (Kanban дорожки)
+	//registrar.RegisterProtected("GET", "/api/projects/:project_id/lanes", r.handlers.Board.GetProjectLanes)
+	registrar.RegisterProtected("POST", "/api/projects/:project_id/lanes", r.handlers.Board.CreateLane)
+	//registrar.RegisterProtected("GET", "/api/projects/:project_id/lanes/:lane_id", r.handlers.Lane.GetLane)
+	registrar.RegisterProtected("PUT", "/api/projects/:project_id/lanes/reorder", r.handlers.Board.ReorderLanes)
+	registrar.RegisterProtected("PUT", "/api/projects/:project_id/lanes/:lane_id", r.handlers.Board.UpdateLane)
+	registrar.RegisterProtected("DELETE", "/api/projects/:project_id/lanes/:lane_id", r.handlers.Board.DeleteLane)
 
-		// Columns
-		registrar.RegisterProtected("GET", "/api/projects/:project_id/columns", r.handlers.Column.GetProjectColumns)
-		registrar.RegisterProtected("POST", "/api/projects/:project_id/columns", r.handlers.Column.CreateColumn)
-		registrar.RegisterProtected("GET", "/api/projects/:project_id/columns/:column_id", r.handlers.Column.GetColumn)
-		registrar.RegisterProtected("PUT", "/api/projects/:project_id/columns/:column_id", r.handlers.Column.UpdateColumn)
-		registrar.RegisterProtected("DELETE", "/api/projects/:project_id/columns/:column_id", r.handlers.Column.DeleteColumn)
+	// Columns
+	//registrar.RegisterProtected("GET", "/api/projects/:project_id/columns", r.handlers.Column.GetProjectColumns)
+	registrar.RegisterProtected("POST", "/api/projects/:project_id/columns", r.handlers.Board.CreateColumn)
+	//registrar.RegisterProtected("GET", "/api/projects/:project_id/columns/:column_id", r.handlers.Column.GetColumn)
+	//registrar.RegisterProtected("PUT", "/api/projects/:project_id/columns/:column_id", r.handlers.Column.UpdateColumn)
+	registrar.RegisterProtected("DELETE", "/api/projects/:project_id/columns/:column_id", r.handlers.Board.DeleteColumn)
+	registrar.RegisterProtected("PUT", "/api/projects/:project_id/columns/reorder", r.handlers.Board.ReorderColumns)
 
-		// Attachments
-		registrar.RegisterProtected("GET", "/api/projects/:project_id/tasks/:task_id/attachments", r.handlers.Attachment.GetTaskAttachments)
-		registrar.RegisterProtected("POST", "/api/projects/:project_id/tasks/:task_id/attachments", r.handlers.Attachment.UploadAttachment)
-		registrar.RegisterProtected("GET", "/api/projects/:project_id/tasks/:task_id/attachments/:attachment_id", r.handlers.Attachment.GetAttachment)
-		registrar.RegisterProtected("DELETE", "/api/projects/:project_id/tasks/:task_id/attachments/:attachment_id", r.handlers.Attachment.DeleteAttachment)
-	*/
+	// Attachments
+	registrar.RegisterProtected("GET", "/api/projects/:project_id/tasks/:task_id/attachments", r.handlers.Attachment.ListByTask)
+	registrar.RegisterProtected("POST", "/api/projects/:project_id/tasks/:task_id/attachments", r.handlers.Attachment.Upload)
+	registrar.RegisterProtected("GET", "/api/projects/:project_id/tasks/:task_id/attachments/:attachment_id", r.handlers.Attachment.Download)
+	registrar.RegisterProtected("DELETE", "/api/projects/:project_id/tasks/:task_id/attachments/:attachment_id", r.handlers.Attachment.Delete)
+
+	registrar.RegisterProtected("GET", "/api/projects/:project_id/summary", r.handlers.Project.GetSummary)
 
 	return r.engine
 }

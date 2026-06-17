@@ -11,9 +11,7 @@ import {
     Check,
     CheckSquare, Info,
     Clock,
-    CloudCheck,
     Flag,
-    MessageCircle,
     MessageSquare,
     MoreVertical,
     MoveRight,
@@ -26,23 +24,17 @@ import {
     TrendingUp,
     User,
     UserX,
-    X,
-    Pencil,
-    FileText,
-    RefreshCw,
-    Zap,
-    Tag,
-    CheckCircle,
-    XCircle,
+    X, Save, ChevronDown, ChevronsRight,
 } from 'lucide-react';
-import CreateTaskModal from './CreateTaskModal';
+import CreateTaskModal from './modals/CreateTaskModal';
 import '../styles/TaskPage.css';
-import AddAttachment from "./AddAttachment";
 import Preloader, {CustomUserAvatar, PriorityIcon} from "./CommonComponents";
 import CustomInputSelector from "./CustomInputSelector";
 import {projectService} from "../services/projectService";
+import CommentInput from './CommentInput';
+import TaskAttachments from "./TaskAttachments";
+import DatePicker from "./DatePicker";
 
-// Конфигурация кнопок
 const STATUS_ACTIONS = {
     'todo': [
         { type: 'progress', label: 'Start work', icon: Play },
@@ -50,6 +42,7 @@ const STATUS_ACTIONS = {
     ],
     'progress': [
         { type: 'todo', label: 'Reopen', icon: RotateCcw },
+        { type: 'progress', label: 'Change stage', icon: ChevronsRight, sameType: true },
         { type: 'paused', label: 'Pause work', icon: Pause },
         { type: 'completed', label: 'Complete', icon: Check },
         { type: 'cancelled', label: 'Cancel', icon: Ban }
@@ -57,6 +50,7 @@ const STATUS_ACTIONS = {
     'paused': [
         { type: 'todo', label: 'Reopen', icon: RotateCcw },
         { type: 'progress', label: 'Resume work', icon: Play },
+        { type: 'paused', label: 'Change stage', icon: ChevronsRight, sameType: true },
         { type: 'completed', label: 'Complete', icon: Check },
         { type: 'cancelled', label: 'Cancel', icon: Ban }
     ],
@@ -75,7 +69,6 @@ export default function TaskPage({ currentUser }) {
     const navigate = useNavigate();
 
     const [task, setTask] = useState(null);
-    const [activities, setActivities] = useState([]);
     const [activitiesState, setActivitiesState] = useState({
         all: { items: [], offset: 0, total: 0, hasMore: true, loading: false },
         comments: { items: [], offset: 0, total: 0, hasMore: true, loading: false },
@@ -107,9 +100,16 @@ export default function TaskPage({ currentUser }) {
     const [editedDescription, setEditedDescription] = useState('');
     const [editedAssignee, setEditedAssignee] = useState(null);
 
+    const [isEditingDates, setIsEditingDates] = useState(false);
+    const [tempStartDate, setTempStartDate] = useState(null);
+    const [tempDueDate, setTempDueDate] = useState(null);
+
+    const [openStatusDropdown, setOpenStatusDropdown] = useState(null);
     const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
-    const [isPriorityModalOpen, setIsPriorityModalOpen] = useState(false);
     const [selectedAction, setSelectedAction] = useState(null);
+
+    const [showCommentInput, setShowCommentInput] = useState(false);
+    const commentInputRef = useRef(null);
 
     // Загрузка данных задачи
     useEffect(() => {
@@ -131,7 +131,6 @@ export default function TaskPage({ currentUser }) {
         }
     }, [activeTab, isLoading]);
 
-    // Настройка Intersection Observer для бесконечного скролла
     useEffect(() => {
         const currentTabState = activitiesState[activeTab];
 
@@ -142,7 +141,7 @@ export default function TaskPage({ currentUser }) {
         const observer = new IntersectionObserver(
             (entries) => {
                 if (entries[0].isIntersecting && currentTabState.hasMore && !currentTabState.loading && !loadingMore) {
-                    loadActivities(false); // load more
+                    loadActivities(false);
                 }
             },
             { threshold: 0.1, rootMargin: "100px" }
@@ -176,19 +175,20 @@ export default function TaskPage({ currentUser }) {
         setError(null);
         try {
             const response = await projectService.getTask(projectId, taskId);
-            setTask(response);
+            setTask({
+                ...response,
+                attachments: response.attachments || []
+            });
             setEditedTitle(response.title);
             setEditedDescription(response.description || '');
             setEditedAssignee(response.assignee);
         } catch (err) {
             console.error('Failed to load task:', err);
-            setError(err.message || 'Failed to load task');
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Новая функция загрузки активностей с пагинацией
     const loadActivities = async (reset = false) => {
         const currentState = activitiesState[activeTab];
 
@@ -238,7 +238,6 @@ export default function TaskPage({ currentUser }) {
             }));
 
         } catch (err) {
-            console.error('Failed to load activities:', err);
             setActivitiesState(prev => ({
                 ...prev,
                 [activeTab]: { ...prev[activeTab], loading: false }
@@ -254,30 +253,21 @@ export default function TaskPage({ currentUser }) {
     const hasMore = activitiesState[activeTab].hasMore;
     const isLoadingActivities = activitiesState[activeTab].loading;
 
-    const availableActions = task ? STATUS_ACTIONS[task.status?.status_type] || [] : [];
+    const availableStatusTypes = new Set(projectStatuses.map(s => s.status_type));
 
-    const handleStatusActionClick = (action) => {
-        const targetStatuses = projectStatuses.filter(
-            status => status.status_type === action.type
-        );
-
-        if (targetStatuses?.length === 1) {
-            handleStatusChange(targetStatuses[0]);
-        } else {
-            setSelectedAction(action);
-            setIsStatusModalOpen(true);
-        }
-    };
+    const availableActions = task ? (STATUS_ACTIONS[task.status?.status_type] || []).filter(action =>
+        availableStatusTypes.has(action.type)
+    ) : [];
 
     const handleStatusChange = async (targetStatus) => {
         try {
             await projectService.updateTaskStatus(projectId, taskId, targetStatus.id);
             setTask((prev) => ({
-              ...prev,
-              status: targetStatus,
+                ...prev,
+                status: targetStatus,
+                status_changed_at: Date.now(),
             }))
             await loadActivities(true);
-            await getTimeInStatus();
         } catch (err) {
             console.error('Failed to update status:', err);
         }
@@ -305,8 +295,14 @@ export default function TaskPage({ currentUser }) {
     const handleSaveAssignee = async (assignee) => {
         setIsEditingAssignee(false);
         try {
-            await projectService.updateTaskAssignee(projectId, taskId, assignee?.user.id || null);
-            setEditedAssignee(assignee.user || null)
+            await projectService.updateTaskAssignee(projectId, taskId, assignee?.user?.id || null);
+
+            const isUnassigned = assignee?.user?.id === '00000000-0000-0000-0000-000000000000';
+            const newAssignee = isUnassigned ? null : (assignee?.user || null);
+
+            setEditedAssignee(newAssignee);
+            setTask(prev => ({ ...prev, assignee: newAssignee }));
+
             await loadActivities(true);
         } catch (err) {
             console.error('Failed to update assignee:', err);
@@ -382,20 +378,31 @@ export default function TaskPage({ currentUser }) {
         ? Math.round((task?.subtasks.filter(st => st.status?.status_type === 'completed' || st.status?.status_type === 'cancelled')?.length / task?.subtasks?.length) * 100)
         : 0;
 
-    const handleSubmitComment = async (e) => {
-        e.preventDefault();
-        if (comment.trim()) {
-            try {
-                await projectService.createComment(projectId, taskId, comment);
-                setComment('');
-                await loadActivities();
-            } catch (err) {
-                console.error('Failed to add comment:', err);
-            }
+    const handleSubmitComment = async (content) => {
+        try {
+            await projectService.createComment(projectId, taskId, content);
+            await loadActivities(true);
+            setShowCommentInput(false);
+        } catch (err) {
+            console.error('Failed to add comment:', err);
         }
     };
 
-    const handleCreateSubtask = async (newTask) => {
+    // Функция для открытия инпута
+    const handleOpenCommentInput = () => {
+        setShowCommentInput(true);
+        setTimeout(() => {
+            commentInputRef.current?.focus();
+            commentInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+    };
+
+    // Функция для отмены
+    const handleCancelComment = () => {
+        setShowCommentInput(false);
+    };
+
+    const handleCreateSubtask = async () => {
         try {
             await loadTaskData();
             await loadActivities(true);
@@ -407,7 +414,9 @@ export default function TaskPage({ currentUser }) {
     const handleAttachmentsChange = (newAttachments) => {
         setTask(prev => ({
             ...prev,
-            attachments: newAttachments
+            attachments: typeof newAttachments === 'function'
+                ? newAttachments(prev.attachments || [])
+                : newAttachments
         }));
     };
 
@@ -434,45 +443,99 @@ export default function TaskPage({ currentUser }) {
         }
     };
 
-    useEffect(() => {
-        if (taskId && !isLoading) {
-            getTimeInStatus();
-        }
-    }, [projectId, taskId, isLoading]);
+    const commentsSectionRef = useRef(null);
 
-    const [timeInStatus, setTimeInStatus] = useState('0m');
-    const getTimeInStatus = async () => {
-        if (!task || !task.id) setTimeInStatus('0m');
+    // Функция для скролла к комментариям
+    const scrollToComments = () => {
+        // Переключаем таб на comments
+        setActiveTab('comments');
+
+        // Плавный скролл к секции комментариев
+        setTimeout(() => {
+            if (commentsSectionRef.current) {
+                commentsSectionRef.current.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        }, 50); // Небольшая задержка для переключения таба
+
+    };
+
+    const [isPrioritySelectorOpen, setIsPrioritySelectorOpen] = useState(false);
+    const priorityRef = useRef(null);
+
+    const priorities = [
+        { value: 'critical', label: 'Critical', color: 'var(--error)' },
+        { value: 'high', label: 'High', color: 'var(--warning)' },
+        { value: 'medium', label: 'Medium', color: 'var(--info)' },
+        { value: 'low', label: 'Low', color: 'var(--text-tertiary)' }
+    ];
+
+
+    const handlePriorityChange = async (newPriority) => {
         try {
-            const response = await projectService.getTaskChanges(projectId, taskId, "status");
-            console.log(response);
-            const statusChanges = response.changes || null
-
-            let statusStartTime;
-            if (statusChanges && statusChanges?.length > 0) {
-                statusStartTime = new Date(statusChanges[0].created_at);
-            } else {
-                statusStartTime = new Date(task.created_at);
-            }
-
-            const now = new Date();
-            const diffMs = now - statusStartTime;
-            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-            const diffDays = Math.floor(diffHours / 24);
-            const remainingHours = diffHours % 24;
-
-            if (diffDays > 0) { setTimeInStatus(`${diffDays}d ${remainingHours}h`); return }
-            if (diffHours > 0) {
-                const diffMinutes = Math.floor(diffMs / (1000 * 60)) - diffHours * 60;
-                setTimeInStatus(`${diffHours}h ${diffMinutes}m`);
-                return
-            }
-            const diffMinutes = Math.floor(diffMs / (1000 * 60));
-            setTimeInStatus(`${diffMinutes > 0 ? diffMinutes : 0}m`);
+            await projectService.updateTask(projectId, taskId, { priority: newPriority });
+            setTask((prev) => ({
+                ...prev,
+                priority: newPriority,
+            }));
+            await loadActivities(true);
+            setIsPrioritySelectorOpen(false);
         } catch (err) {
-            setTimeInStatus('0m')
-            throw new Error("Error getting time in status: ", err);
+            console.error('Failed to update priority:', err);
         }
+    };
+
+    const handleStartDateChange = async (newDate) => {
+        try {
+            await projectService.updateTask(projectId, taskId, { start_date: newDate });
+            setTask(prev => ({ ...prev, start_date: newDate }));
+            await loadActivities(true);
+            setIsEditingDates(false);
+        } catch (err) {
+            console.error('Failed to update start date:', err);
+        }
+    };
+
+    const handleDueDateChange = async (newDate) => {
+        try {
+            await projectService.updateTask(projectId, taskId, { due_date: newDate ? newDate : null });
+            setTask(prev => ({ ...prev, due_date: newDate }));
+            await loadActivities(true);
+            setIsEditingDates(false);
+        } catch (err) {
+            console.error('Failed to update due date:', err);
+        }
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (priorityRef.current && !priorityRef.current.contains(event.target)) {
+                setIsPrioritySelectorOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const getTimeInStatus = (statusChangedAt) => {
+        const statusStartTime = new Date(statusChangedAt)
+        const now = new Date();
+        const diffMs = now - statusStartTime;
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffDays = Math.floor(diffHours / 24);
+        const remainingHours = diffHours % 24;
+
+        if (diffDays > 0) { return `${diffDays}d ${remainingHours}h` }
+        if (diffHours > 0) {
+            const diffMinutes = Math.floor(diffMs / (1000 * 60)) - diffHours * 60;
+            return `${diffHours}h ${diffMinutes}m`
+        }
+        const diffMinutes = Math.floor(diffMs / (1000 * 60));
+        return `${diffMinutes > 0 ? diffMinutes : 0}m`;
+
     };
 
     const formatDate = (dateString) => {
@@ -510,12 +573,12 @@ export default function TaskPage({ currentUser }) {
             <div className="task-page">
                 <div className="task-page-header">
                     <span className="back-link" onClick={() => navigate(-1)}>
-                        <ArrowLeft size={20} />
+                        <ArrowLeft size={16}/>
                         <span>Back</span>
                     </span>
                     <div className="header-actions">
                         <button className="icon-btn">
-                            <MoreVertical size={18} />
+                            <MoreVertical size={18}/>
                         </button>
                     </div>
                 </div>
@@ -540,7 +603,7 @@ export default function TaskPage({ currentUser }) {
                                         onClick={handleSaveTitle}
                                         title="Save"
                                     >
-                                        <CloudCheck size={16}/>
+                                        <Save size={16}/>
                                     </button>
                                     <button
                                         className="title-edit-cancel"
@@ -571,32 +634,159 @@ export default function TaskPage({ currentUser }) {
                             {/* Кнопка смены приоритета */}
                             <button
                                 className="priority-action-btn"
-                                onClick={() => setIsPriorityModalOpen(true)}
+                                onClick={() => scrollToComments()}
                             >
-                                <MessageSquare size={16} />
+                                <MessageSquare size={16}/>
                                 Add Comment
                             </button>
-                            <button
-                                className="priority-action-btn"
-                                onClick={() => setIsPriorityModalOpen(true)}
-                            >
-                                <TrendingUp size={16} />
-                                Change Priority
-                            </button>
+                            <div className="priority-selector-wrapper" ref={priorityRef}>
+                                <button
+                                    className="priority-action-btn"
+                                    onClick={() => setIsPrioritySelectorOpen(!isPrioritySelectorOpen)}
+                                >
+                                    <TrendingUp size={16}/>
+                                    <span>Change Priority</span>
+                                </button>
 
-                            {/* Кнопки статусов */}
+                                {isPrioritySelectorOpen && (
+                                    <div className="priority-dropdown">
+                                        {priorities.map((priority) => (
+                                            <button
+                                                key={priority.value}
+                                                className={`priority-option ${task.priority === priority.value ? 'active' : ''}`}
+                                                onClick={() => handlePriorityChange(priority.value)}
+                                            >
+                                                <span
+                                                    className={`priority-option-label priority-option-label-${priority.value}`}
+                                                >
+                                                    <PriorityIcon priorityId={priority.value} size={20}/>
+                                                    {priority.label.toUpperCase()}
+                                                </span>
+                                                {task.priority === priority.value && (
+                                                    <Check size={14} className="priority-option-check"/>
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
                             <div className="status-actions-bar">
-                                {availableActions && availableActions?.map(action => {
+                                {availableActions?.map(action => {
                                     const Icon = action.icon;
+
+                                    if (action.sameType) {
+                                        const sameTypeStatuses = projectStatuses.filter(
+                                            s => s.status_type === task.status?.status_type && s.id !== task.status?.id
+                                        );
+
+                                        if (sameTypeStatuses.length === 0) return null;
+
+                                        if (sameTypeStatuses.length === 1) {
+                                            return (
+                                                <button
+                                                    key={action.type}
+                                                    className="status-action-btn"
+                                                    onClick={() => handleStatusChange(sameTypeStatuses[0])}
+                                                >
+                                                    <div className="status-dropdown-color" style={{backgroundColor: sameTypeStatuses[0].color}}/>
+                                                    <span>To {sameTypeStatuses[0].name}</span>
+                                                </button>
+                                            );
+                                        }
+
+                                        return (
+                                            <div key={action.type} className="status-action-wrapper">
+                                                <button
+                                                    className="status-action-btn"
+                                                    onClick={() => setOpenStatusDropdown(
+                                                        openStatusDropdown === action.type ? null : action.type
+                                                    )}
+                                                >
+                                                    <Icon size={16}/>
+                                                    <span>{action.label}</span>
+                                                    <ChevronDown size={14} className={`dropdown-arrow ${openStatusDropdown === action.type ? 'open' : ''}`}/>
+                                                </button>
+
+                                                {openStatusDropdown === action.type && (
+                                                    <div className="status-dropdown">
+                                                        {sameTypeStatuses.map(status => (
+                                                            <button
+                                                                key={status.id}
+                                                                className="status-dropdown-item"
+                                                                onClick={() => {
+                                                                    handleStatusChange(status);
+                                                                    setOpenStatusDropdown(null);
+                                                                }}
+                                                            >
+                                                                <div className="status-dropdown-color" style={{ backgroundColor: status.color }}/>
+                                                                <span className="status-dropdown-name">{status.name}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    }
+
+                                    // Обычные переходы (без sameType)
+                                    const targetStatuses = projectStatuses.filter(
+                                        status => status.status_type === action.type
+                                    );
+
+                                    if (targetStatuses.length === 0) return null;
+
+                                    // Один статус — сразу применяем
+                                    if (targetStatuses.length === 1) {
+                                        return (
+                                            <button
+                                                key={action.type}
+                                                className="status-action-btn"
+                                                onClick={() => handleStatusChange(targetStatuses[0])}
+                                            >
+                                                <Icon size={16}/>
+                                                <span>{action.label}</span>
+                                            </button>
+                                        );
+                                    }
+
                                     return (
-                                        <button
-                                            key={action.type}
-                                            className={`status-action-btn ${action.variant}`}
-                                            onClick={() => handleStatusActionClick(action)}
-                                        >
-                                            <Icon size={16}/>
-                                            <span>{action.label}</span>
-                                        </button>
+                                        <div key={action.type} className="status-action-wrapper">
+                                            <button
+                                                className="status-action-btn"
+                                                onClick={() => setOpenStatusDropdown(
+                                                    openStatusDropdown === action.type ? null : action.type
+                                                )}
+                                            >
+                                                <Icon size={16}/>
+                                                <span>{action.label}</span>
+                                                <ChevronDown
+                                                    size={14}
+                                                    className={`dropdown-arrow ${openStatusDropdown === action.type ? 'open' : ''}`}
+                                                />
+                                            </button>
+
+                                            {openStatusDropdown === action.type && (
+                                                <div className="status-dropdown">
+                                                    {targetStatuses.map(status => (
+                                                        <button
+                                                            key={status.id}
+                                                            className="status-dropdown-item"
+                                                            onClick={() => {
+                                                                handleStatusChange(status);
+                                                                setOpenStatusDropdown(null);
+                                                            }}
+                                                        >
+                                                            <div
+                                                                className="status-dropdown-color"
+                                                                style={{backgroundColor: status.color}}
+                                                            />
+                                                            <span className="status-dropdown-name">{status.name}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
                                     );
                                 })}
                             </div>
@@ -615,18 +805,20 @@ export default function TaskPage({ currentUser }) {
                                             ) : (
                                                 <CheckSquare size={16}/>
                                             )}
-                                            <span>{task.parent_task_id ? 'Subtask' : 'Task'}</span>
+                                            <span
+                                                style={{color: 'var(--text-secondary)'}}>{task.parent_task_id ? 'SUBTASK' : 'TASK'}</span>
                                         </div>
                                     </div>
 
                                     <div className="detail-row">
                                         <span className="detail-label">Priority</span>
                                         <div className="detail-value">
-                                            <PriorityIcon priorityId={task.priority} size={24}/>
+
                                             <span
                                                 className={`task-detail-priority task-detail-priority-${task.priority}`}
                                             >
-                                                {task.priority.toUpperCase()}
+                                               <PriorityIcon priorityId={task.priority}
+                                                             size={20}/> {task.priority.toUpperCase()}
                                             </span>
                                         </div>
                                     </div>
@@ -649,7 +841,7 @@ export default function TaskPage({ currentUser }) {
                                         <span className="detail-label">Time in status</span>
                                         <div className="detail-value">
                                             <Clock size={14}/>
-                                            <span>{timeInStatus}</span>
+                                            <span>{getTimeInStatus(task.status_changed_at)}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -699,6 +891,7 @@ export default function TaskPage({ currentUser }) {
                                                     getItemId={(tag) => tag.id}
                                                     getItemName={(tag) => tag.title}
                                                     autoFocus={true}
+                                                    inputClassName={"task-tag-selector-input"}
                                                 />
                                                 <button
                                                     className="tag-selector-close"
@@ -752,7 +945,7 @@ export default function TaskPage({ currentUser }) {
                                             onClick={handleSaveDescription}
                                             title="Save"
                                         >
-                                            <CloudCheck size={16}/>
+                                            <Save size={16}/>
                                         </button>
                                         <button
                                             className="description-edit-cancel"
@@ -778,7 +971,9 @@ export default function TaskPage({ currentUser }) {
                         {/* Attachments */}
                         <div className="task-section">
                             <h3>Attachments</h3>
-                            <AddAttachment
+                            <TaskAttachments
+                                projectId={projectId}
+                                taskId={taskId}
                                 attachments={task.attachments || []}
                                 onAttachmentsChange={handleAttachmentsChange}
                             />
@@ -811,9 +1006,9 @@ export default function TaskPage({ currentUser }) {
                                 )}
 
                                 <div className="subtasks-list">
-                                    {task.subtasks && task?.subtasks.map(subtask => (
+                                    {task.subtasks ? task?.subtasks.map(subtask => (
                                         <div key={subtask.id} className="subtask-item-new"
-                                             onClick={() => navigate(`/project/${projectId}/task/${subtask.id}`)}>
+                                             onClick={() => navigate(`/projects/${projectId}/task/${subtask.id}`)}>
                                             <div className={"subtask-icon-container"}>
                                                 <Blocks size={14} className={"subtask-icon"}/>
                                             </div>
@@ -857,7 +1052,12 @@ export default function TaskPage({ currentUser }) {
                                             </span>
                                             </div>
                                         </div>
-                                    ))}
+                                    )) : (
+                                        <div className="no-subtasks">
+                                            <Blocks size={32}/>
+                                            <p>Create first subtask</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -891,7 +1091,7 @@ export default function TaskPage({ currentUser }) {
                             <div className="activities-list">
                                 {isLoadingActivities && currentActivities.length === 0 ? (
                                     <div className="loading-activities">
-                                        <Preloader size={"32px"} />
+                                        <Preloader size={"32px"}/>
                                         <p>Loading {activeTab}...</p>
                                     </div>
                                 ) : currentActivities.length === 0 ? (
@@ -905,10 +1105,12 @@ export default function TaskPage({ currentUser }) {
                                             const isLast = index === currentActivities.length - 1;
 
                                             if (activity.type === 'comment') {
-                                                return <CommentItem key={activity.id} activity={activity} ref={isLast ? lastActivityRef : null} />;
+                                                return <CommentItem key={activity.id} activity={activity}
+                                                                    ref={isLast ? lastActivityRef : null}/>;
                                             }
                                             if (activity.type === 'change') {
-                                                return <ChangeItem key={activity.id} activity={activity} ref={isLast ? lastActivityRef : null} />;
+                                                return <ChangeItem key={activity.id} activity={activity}
+                                                                   ref={isLast ? lastActivityRef : null}/>;
                                             }
                                             return null;
                                         })}
@@ -926,7 +1128,8 @@ export default function TaskPage({ currentUser }) {
                                                 className="load-more-btn"
                                                 onClick={() => loadActivities(false)}
                                             >
-                                                Load more ({currentActivities.length} / {activitiesState[activeTab].total})
+                                                Load more
+                                                ({currentActivities.length} / {activitiesState[activeTab].total})
                                             </button>
                                         )}
                                     </>
@@ -934,11 +1137,26 @@ export default function TaskPage({ currentUser }) {
                             </div>
 
                             {/* Форма добавления комментария */}
-                            <div className="add-comment-container">
-                                <button className="add-comment-btn">
-                                    <MessageSquare size={16}/>
-                                    Add comment
-                                </button>
+                            <div className="add-comment-container" ref={commentsSectionRef}>
+                                {showCommentInput ? (
+                                    <div className="comment-input-wrapper">
+                                        <CommentInput
+                                            ref={commentInputRef}
+                                            members={projectMembers}
+                                            onSubmit={handleSubmitComment}
+                                            onCancel={handleCancelComment}
+                                            placeholder={"Write a comment..."}
+                                        />
+                                    </div>
+                                ) : (
+                                    <button
+                                        className="add-comment-btn"
+                                        onClick={handleOpenCommentInput}
+                                    >
+                                        <MessageSquare size={16}/>
+                                        Add comment
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -951,14 +1169,27 @@ export default function TaskPage({ currentUser }) {
                                 <Calendar size={16}/>
                                 <div className="detail-content">
                                     <span className="detail-label">Start Date</span>
-                                    <span className="detail-value">{formatDate(task.start_date)}</span>
+                                    <DatePicker
+                                        value={task.start_date}
+                                        onChange={handleStartDateChange}
+                                        placeholder="Not Set"
+                                        includeTime={true}
+                                        clearable={false}
+                                    />
                                 </div>
                             </div>
                             <div className="detail-item">
                                 <Flag size={16}/>
                                 <div className="detail-content">
                                     <span className="detail-label">Due Date</span>
-                                    <span className="detail-value">{formatDate(task.due_date)}</span>
+                                    <DatePicker
+                                        value={task.due_date}
+                                        onChange={handleDueDateChange}
+                                        placeholder="Not Set"
+                                        includeTime={true}
+                                        clearable={false}
+                                        required={false}
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -967,46 +1198,21 @@ export default function TaskPage({ currentUser }) {
                         <div className="sidebar-section">
                             <h4>People</h4>
                             <div className="detail-item people-item">
-                                <User size={16}/>
+                                <User size={16} className={"people-item-icon"}/>
                                 <div className="detail-content">
                                     <span className="detail-label">Assignee</span>
-
-                                    {!isEditingAssignee ? (
-                                        editedAssignee ? (
-                                            <div
-                                                className={`people-info assignee`}
-                                                onMouseEnter={() => setAssigneeHovered(true)}
-                                                onMouseLeave={() => setAssigneeHovered(false)}
-                                            >
-                                                <CustomUserAvatar user={editedAssignee} color={editedAssignee.color}
-                                                                  size={'24px'}
-                                                                  fontSize={'10px'}/>
-                                                <span className="people-name">
-                                                    {editedAssignee.last_name} {editedAssignee.first_name}
-                                                </span>
-                                                <div
-                                                    className={`edit-description-text ${isAssigneeHovered ? 'visible' : ''}`}
-                                                    onClick={() => {
-                                                        handleStartEditAssignee()
-                                                    }}
-                                                >
-                                                    <Pen size={16}/>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className={`people-info-unassigned-container`}>
+                                    <div className={"people-info-item-container"}>
+                                        {!isEditingAssignee ? (
+                                            editedAssignee ? (
                                                 <div
                                                     className={`people-info assignee`}
                                                     onMouseEnter={() => setAssigneeHovered(true)}
                                                     onMouseLeave={() => setAssigneeHovered(false)}
                                                 >
-                                                    <UserX
-                                                        size={32}
-                                                        className={"unassigned-placeholder-icon"}
-                                                    />
-                                                    <span className="unassigned-placeholder-name">
-                                                        Unassigned
-                                                    </span>
+                                                    <CustomUserAvatar user={editedAssignee} color={editedAssignee.color}
+                                                                      size={'24px'}
+                                                                      fontSize={'10px'}/>
+                                                    <span className="people-name">{editedAssignee.last_name} {editedAssignee.first_name}</span>
                                                     <div
                                                         className={`edit-description-text ${isAssigneeHovered ? 'visible' : ''}`}
                                                         onClick={() => {
@@ -1016,64 +1222,91 @@ export default function TaskPage({ currentUser }) {
                                                         <Pen size={16}/>
                                                     </div>
                                                 </div>
-                                                <span className={"people-assign-to-me"} onClick={handleAssignToCurrent}>Assign to me</span>
-                                            </div>
-                                        )
-                                    ) : (
-                                        <div className={"people-section-edit-assignee"}>
-                                            <CustomInputSelector
-                                                availableItems={projectMembers}
-                                                defaultItem={{name: 'Unassigned'}}
-                                                onDefaultSelect={() => {
-                                                    handleSaveAssignee({user: {id: '00000000-0000-0000-0000-000000000000'}})
-                                                }}
-                                                onSelect={handleSaveAssignee}
-                                                renderItem={(item) => {
-                                                    return (
-                                                        <div className="modal-assignee">
-                                                            <CustomUserAvatar user={item.user} color={item.user.color}
-                                                                              size={'24px'}
-                                                                              fontSize={'10px'}/>
-                                                            <span
-                                                                className="modal-assignee-name">{item.user.last_name} {item.user.first_name}</span>
+                                            ) : (
+                                                <div className={`people-info-unassigned-container`}>
+                                                    <div
+                                                        className={`people-info assignee`}
+                                                        onMouseEnter={() => setAssigneeHovered(true)}
+                                                        onMouseLeave={() => setAssigneeHovered(false)}
+                                                    >
+                                                        <UserX
+                                                            size={32}
+                                                            className={"unassigned-placeholder-icon"}
+                                                        />
+                                                        <span className="unassigned-placeholder-name">
+                                                        Unassigned
+                                                    </span>
+                                                        <div
+                                                            className={`edit-description-text ${isAssigneeHovered ? 'visible' : ''}`}
+                                                            onClick={() => {
+                                                                handleStartEditAssignee()
+                                                            }}
+                                                        >
+                                                            <Pen size={16}/>
                                                         </div>
-                                                    )
-                                                }}
-                                                renderDefaultItem={(item) => {
-                                                    return (
-                                                        <div className="modal-assignee">
-                                                            <UserX size={18}/>
-                                                            <span className="modal-assignee-name">{item.name}</span>
-                                                        </div>
-                                                    )
-                                                }}
-                                                placeholder="Search users..."
-                                                getItemId={(member) => member.user.id}
-                                                getItemName={(member) => member.user.first_name + ' ' + member.user.last_name}
-                                            />
-                                            <div
-                                                className={`edit-description-text ${isEditingAssignee ? 'visible' : ''}`}
-                                                onClick={() => {
-                                                    handleCancelEditAssignee()
-                                                }}
-                                            >
-                                                <X size={16}/>
+                                                    </div>
+                                                    <span className={"people-assign-to-me"} onClick={handleAssignToCurrent}>Assign to me</span>
+                                                </div>
+                                            )
+                                        ) : (
+                                            <div className={"people-section-edit-assignee"}>
+                                                <CustomInputSelector
+                                                    availableItems={projectMembers}
+                                                    defaultItem={{name: 'Unassigned'}}
+                                                    onDefaultSelect={() => {
+                                                        handleSaveAssignee({user: {id: '00000000-0000-0000-0000-000000000000'}})
+                                                    }}
+                                                    onSelect={handleSaveAssignee}
+                                                    renderItem={(item) => {
+                                                        return (
+                                                            <div className="modal-assignee">
+                                                                <CustomUserAvatar user={item.user} color={item.user.color}
+                                                                                  size={'24px'}
+                                                                                  fontSize={'10px'}/>
+                                                                <span
+                                                                    className="modal-assignee-name">{item.user.last_name} {item.user.first_name}</span>
+                                                            </div>
+                                                        )
+                                                    }}
+                                                    renderDefaultItem={(item) => {
+                                                        return (
+                                                            <div className="modal-assignee">
+                                                                <UserX size={18}/>
+                                                                <span className="modal-assignee-name">{item.name}</span>
+                                                            </div>
+                                                        )
+                                                    }}
+                                                    placeholder="Search users..."
+                                                    getItemId={(member) => member.user.id}
+                                                    getItemName={(member) => member.user.first_name + ' ' + member.user.last_name}
+                                                />
+                                                <div
+                                                    className={`edit-description-text ${isEditingAssignee ? 'visible' : ''}`}
+                                                    onClick={() => {
+                                                        handleCancelEditAssignee()
+                                                    }}
+                                                >
+                                                    <X size={16}/>
+                                                </div>
                                             </div>
-                                        </div>
-                                    )}
-
+                                        )}
+                                    </div>
                                 </div>
                             </div>
+
                             <div className="detail-item people-item">
                                 <User size={16}/>
                                 <div className="detail-content">
                                     <span className="detail-label">Created by</span>
-                                    <div className="people-info">
-                                    <CustomUserAvatar user={task.creator} color={task.creator.color} size={'24px'}
-                                                          fontSize={'10px'}/>
-                                        <span
-                                            className="people-name">{task.creator.last_name} {task.creator.first_name}</span>
+                                    <div className={"people-info-item-container"}>
+                                        <div className="people-info">
+                                            <CustomUserAvatar user={task.creator} color={task.creator.color}
+                                                              size={'24px'}
+                                                              fontSize={'10px'}/>
+                                            <span
+                                                className="people-name">{task.creator.last_name} {task.creator.first_name}</span>
                                         </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1089,15 +1322,15 @@ export default function TaskPage({ currentUser }) {
                                 </div>
                             </div>
                             <div className="detail-item">
-                                <CalendarCheck size={16} />
+                                <CalendarCheck size={16}/>
                                 <div className="detail-content">
                                     <span className="detail-label">Updated</span>
-                                    <span className="detail-value">{formatDate(task.created_at)}</span>
+                                    <span className="detail-value">{formatDate(task.updated_at)}</span>
                                 </div>
                             </div>
                             {task.completed_at && (
                                 <div className="detail-item">
-                                    <CalendarX size={16} />
+                                    <CalendarX size={16}/>
                                     <div className="detail-content">
                                         <span className="detail-label">Resolved</span>
                                         <span className="detail-value">{formatDate(task.completed_at)}</span>
@@ -1121,7 +1354,7 @@ export default function TaskPage({ currentUser }) {
 }
 
 // Компонент для комментария
-const CommentItem = ({ activity }) => {
+const CommentItem = ({activity}) => {
     const user = activity.user;
     const time = new Date(activity.created_at).toLocaleString('en-US', {
         month: 'short',
@@ -1193,16 +1426,38 @@ const ChangeItem = ({ activity }) => {
 
             case 'priority':
                 return (
-                    <div className={`change-priority change-priority-${value}`}>
-                        {value.toUpperCase()}
+                    <div className={"change-priority-container"}>
+                        <div className={`change-priority change-priority-${value}`}>
+                            <PriorityIcon priorityId={value}/> {value.toUpperCase()}
+                        </div>
                     </div>
                 );
+
+            case 'due_date':
+            case 'start_date': {
+                const formattedDate = value ? new Date(value).toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                }) : null;
+
+                if (!formattedDate) return <span className="change-value-null">Not set</span>;
+
+                return (
+                    <div className={"change-date-container"}>
+                        <span>{formattedDate}</span>
+                    </div>
+                );
+            }
 
             case 'subtask':
                 return (
                     <div className={`change-subtasks`}>
-                        {value.slice().reverse().map((item, index) => (
-                            <Link to={`/project/${projectId}/task/${item.id}`}
+                    {value.slice().reverse().map((item, index) => (
+                            <Link to={`/projects/${projectId}/task/${item.id}`}
                                   key={item.id}
                                   className={`change-subtask-item ${index === 0 ? 'new' : ''}`}
                             >
@@ -1218,7 +1473,7 @@ const ChangeItem = ({ activity }) => {
                     return (
                     <div className="change-assignee">
                         <CustomUserAvatar user={value} color={value.color} size="24px" fontSize="10px" />
-                        <span>{value.first_name} {value.last_name}</span>
+                        <span>{value.last_name} {value.first_name}</span>
                     </div>
                 );
 
@@ -1264,7 +1519,7 @@ const ChangeItem = ({ activity }) => {
                             <span>
                                 { value.assignee ? (
                                     <>
-                                        <CustomUserAvatar user={value.assignee} color={value.color} size="24px" fontSize="10px" />
+                                        <CustomUserAvatar user={value.assignee} color={value.assignee.color} size="24px" fontSize="10px" />
                                         <span>{value.assignee.last_name + " " + value.assignee.first_name}</span>
                                     </>
                                     ) : (
@@ -1320,7 +1575,7 @@ const ChangeItem = ({ activity }) => {
                         <span className="change-field-name">
                             {fieldLabels[activity.field_name] || activity.field_name}
                         </span>
-                        {duration && (
+                        {duration && activity.field_name !== 'task' && (
                             <span className="activity-duration">
                             <Clock size={12} style={{marginRight: '4px'}}/>
                                 {duration}

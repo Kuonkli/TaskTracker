@@ -8,8 +8,10 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd
 
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates
+
+RUN mkdir -p /var/lib/task-tracker/uploads
+
 WORKDIR /root/
 COPY --from=builder /app/main .
-COPY --from=builder /app/.env .
 EXPOSE 8080
 CMD ["./main"]

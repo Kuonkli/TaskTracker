@@ -7,20 +7,21 @@ import (
 )
 
 type Task struct {
-	ID           uuid.UUID  `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
-	CreatedAt    time.Time  `gorm:"default:now()" json:"created_at"`
-	UpdatedAt    time.Time  `gorm:"default:now()" json:"updated_at"`
-	ProjectID    uuid.UUID  `gorm:"type:uuid;not null" json:"project_id"`
-	Title        string     `gorm:"type:varchar(255);not null" json:"title"`
-	Description  *string    `gorm:"type:text" json:"description,omitempty"`
-	CreatorID    uuid.UUID  `gorm:"type:uuid;not null" json:"creator_id"`
-	AssigneeID   *uuid.UUID `gorm:"type:uuid" json:"assignee_id,omitempty"`
-	StatusID     *uuid.UUID `gorm:"type:uuid" json:"status_id,omitempty"`
-	Priority     string     `gorm:"type:varchar(100);default:'medium'" json:"priority"`
-	StartDate    *time.Time `gorm:"default:now()" json:"start_date,omitempty"`
-	DueDate      *time.Time `json:"due_date,omitempty"`
-	ClosedAt     *time.Time `json:"closed_at,omitempty"`
-	ParentTaskID *uuid.UUID `gorm:"type:uuid" json:"parent_task_id,omitempty"`
+	ID              uuid.UUID  `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	CreatedAt       time.Time  `gorm:"default:now()" json:"created_at"`
+	UpdatedAt       time.Time  `gorm:"default:now()" json:"updated_at"`
+	ProjectID       uuid.UUID  `gorm:"type:uuid;not null" json:"project_id"`
+	Title           string     `gorm:"type:varchar(255);not null" json:"title"`
+	Description     *string    `gorm:"type:text" json:"description,omitempty"`
+	CreatorID       uuid.UUID  `gorm:"type:uuid;not null" json:"creator_id"`
+	AssigneeID      *uuid.UUID `gorm:"type:uuid" json:"assignee_id,omitempty"`
+	StatusID        *uuid.UUID `gorm:"type:uuid" json:"status_id,omitempty"`
+	StatusChangedAt *time.Time `gorm:"default:now()" json:"status_changed_at"`
+	Priority        string     `gorm:"type:varchar(100);default:'medium'" json:"priority"`
+	StartDate       *time.Time `gorm:"default:now()" json:"start_date,omitempty"`
+	DueDate         *time.Time `json:"due_date,omitempty"`
+	ClosedAt        *time.Time `json:"closed_at,omitempty"`
+	ParentTaskID    *uuid.UUID `gorm:"type:uuid" json:"parent_task_id,omitempty"`
 
 	// Relationships
 	Project     *Project       `gorm:"foreignKey:ProjectID" json:"project,omitempty"`

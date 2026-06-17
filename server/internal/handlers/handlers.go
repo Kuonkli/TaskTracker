@@ -14,6 +14,7 @@ type Handlers struct {
 	Board        BoardHandler
 	Tag          TagHandler
 	Status       StatusHandler
+	Attachment   AttachmentHandler
 }
 
 // NewHandlers создает все хендлеры
@@ -27,5 +28,6 @@ func NewHandlers(services *service.Services, jwtSecret string) *Handlers {
 		Board:        NewBoardHandler(services.Board),
 		Tag:          NewTagHandler(services.Tag),
 		Status:       NewStatusHandler(services.Status),
+		Attachment:   NewAttachmentHandler(services.Attachment),
 	}
 }

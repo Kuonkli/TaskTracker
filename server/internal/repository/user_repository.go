@@ -93,6 +93,12 @@ func (r *userRepo) List(ctx context.Context, filter dto.UserFilter, limit, offse
 	if filter.Nickname != "" {
 		query = query.Where("nickname ILIKE ?", "%"+filter.Nickname+"%")
 	}
+	if filter.Search != "" {
+		searchTerm := "%" + filter.Search + "%"
+		query = query.Where("nickname ILIKE ?", searchTerm).
+			Or("email ILIKE ?", searchTerm).
+			Or("CONCAT(first_name, ' ', last_name) ILIKE ?", searchTerm)
+	}
 
 	err := query.
 		Order("created_at DESC").

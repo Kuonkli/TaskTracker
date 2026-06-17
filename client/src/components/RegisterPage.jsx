@@ -1,22 +1,25 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, Eye, EyeOff, UserPlus } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff, UserPlus, AtSign } from 'lucide-react';
+import { authService } from '../services/authService';
+import { useToast } from '../contexts/ToastContext';
 import '../styles/AuthPages.css';
 
 export default function RegisterPage({ onRegister }) {
     const navigate = useNavigate();
+    const { showToast, handleApiError } = useToast();
+
     const [formData, setFormData] = useState({
         email: '',
         password: '',
         confirmPassword: '',
-        firstName: '',
-        lastName: '',
+        first_name: '',
+        last_name: '',
         nickname: ''
     });
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [errors, setErrors] = useState({});
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -24,78 +27,70 @@ export default function RegisterPage({ onRegister }) {
             ...prev,
             [name]: value
         }));
-        // Clear error for this field
-        if (errors[name]) {
-            setErrors(prev => ({
-                ...prev,
-                [name]: null
-            }));
-        }
     };
 
     const validateForm = () => {
-        const newErrors = {};
+        const errors = [];
 
         if (!formData.email.trim()) {
-            newErrors.email = 'Email is required';
+            errors.push('Email is required');
         } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-            newErrors.email = 'Email is invalid';
+            errors.push('Email is invalid');
         }
 
         if (!formData.password) {
-            newErrors.password = 'Password is required';
+            errors.push('Password is required');
         } else if (formData.password.length < 6) {
-            newErrors.password = 'Password must be at least 6 characters';
+            errors.push('Password must be at least 6 characters');
         }
 
         if (formData.password !== formData.confirmPassword) {
-            newErrors.confirmPassword = 'Passwords do not match';
+            errors.push('Passwords do not match');
         }
 
-        if (!formData.firstName.trim()) {
-            newErrors.firstName = 'First name is required';
+        if (!formData.first_name.trim()) {
+            errors.push('First name is required');
         }
 
-        if (!formData.lastName.trim()) {
-            newErrors.lastName = 'Last name is required';
+        if (!formData.last_name.trim()) {
+            errors.push('Last name is required');
         }
 
         if (!formData.nickname.trim()) {
-            newErrors.nickname = 'Nickname is required';
+            errors.push('Nickname is required');
         } else if (formData.nickname.length < 3) {
-            newErrors.nickname = 'Nickname must be at least 3 characters';
+            errors.push('Nickname must be at least 3 characters');
+        } else if (!/^[a-zA-Z0-9_]+$/.test(formData.nickname)) {
+            errors.push('Nickname can only contain letters, numbers and underscore');
         }
 
-        return newErrors;
+        return errors;
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const newErrors = validateForm();
 
-        if (Object.keys(newErrors).length === 0) {
-            setIsLoading(true);
+        const errors = validateForm();
 
-            try {
-                // Здесь будет API запрос к /api/auth/register
-                setTimeout(() => {
-                    const mockUser = {
-                        id: '550e8400-e29b-41d4-a716-446655440001',
-                        email: formData.email,
-                        first_name: formData.firstName,
-                        last_name: formData.lastName,
-                        nickname: formData.nickname
-                    };
-                    onRegister(mockUser);
-                    navigate('/projects');
-                    setIsLoading(false);
-                }, 500);
-            } catch (err) {
-                setErrors({ general: 'Registration failed. Please try again.' });
-                setIsLoading(false);
-            }
-        } else {
-            setErrors(newErrors);
+        if (errors.length > 0) {
+            // Показываем все ошибки в одном toast
+            errors.forEach(error => showToast(error, 'warning'));
+            return;
+        }
+
+        setIsLoading(true);
+
+        try {
+            // Отправляем только нужные поля (без confirmPassword)
+            const { confirmPassword, ...registerData } = formData;
+
+            const user = await authService.register(registerData);
+            await onRegister(user);
+            showToast('Account created successfully! Welcome aboard!', 'success');
+        } catch (err) {
+            handleApiError(err);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -110,55 +105,42 @@ export default function RegisterPage({ onRegister }) {
                     </div>
 
                     <form onSubmit={handleSubmit} className="auth-form">
-                        {errors.general && (
-                            <div className="auth-error">
-                                <span>{errors.general}</span>
-                            </div>
-                        )}
-
                         <div className="form-row">
                             <div className="form-group">
-                                <label htmlFor="firstName">
+                                <label htmlFor="first_name">
                                     <User size={16} />
                                     First name
                                 </label>
                                 <input
                                     type="text"
-                                    id="firstName"
-                                    name="firstName"
-                                    value={formData.firstName}
+                                    id="first_name"
+                                    name="first_name"
+                                    value={formData.first_name}
                                     onChange={handleChange}
-                                    placeholder="Enter first name"
-                                    className={errors.firstName ? 'error' : ''}
+                                    placeholder="First name"
                                 />
-                                {errors.firstName && (
-                                    <span className="field-error">{errors.firstName}</span>
-                                )}
                             </div>
 
                             <div className="form-group">
-                                <label htmlFor="lastName">
+                                <label htmlFor="last_name">
                                     <User size={16} />
                                     Last name
                                 </label>
                                 <input
                                     type="text"
-                                    id="lastName"
-                                    name="lastName"
-                                    value={formData.lastName}
+                                    id="last_name"
+                                    name="last_name"
+                                    value={formData.last_name}
                                     onChange={handleChange}
-                                    placeholder="Enter last name"
-                                    className={errors.lastName ? 'error' : ''}
+                                    placeholder="Last name"
                                 />
-                                {errors.lastName && (
-                                    <span className="field-error">{errors.lastName}</span>
-                                )}
                             </div>
                         </div>
 
                         <div className="form-group">
                             <label htmlFor="nickname">
-                                @ Nickname
+                                <AtSign size={16} />
+                                Nickname
                             </label>
                             <input
                                 type="text"
@@ -167,11 +149,7 @@ export default function RegisterPage({ onRegister }) {
                                 value={formData.nickname}
                                 onChange={handleChange}
                                 placeholder="Choose a nickname"
-                                className={errors.nickname ? 'error' : ''}
                             />
-                            {errors.nickname && (
-                                <span className="field-error">{errors.nickname}</span>
-                            )}
                         </div>
 
                         <div className="form-group">
@@ -186,11 +164,7 @@ export default function RegisterPage({ onRegister }) {
                                 value={formData.email}
                                 onChange={handleChange}
                                 placeholder="Enter your email"
-                                className={errors.email ? 'error' : ''}
                             />
-                            {errors.email && (
-                                <span className="field-error">{errors.email}</span>
-                            )}
                         </div>
 
                         <div className="form-row">
@@ -207,7 +181,6 @@ export default function RegisterPage({ onRegister }) {
                                         value={formData.password}
                                         onChange={handleChange}
                                         placeholder="Create password"
-                                        className={errors.password ? 'error' : ''}
                                     />
                                     <button
                                         type="button"
@@ -217,9 +190,6 @@ export default function RegisterPage({ onRegister }) {
                                         {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                     </button>
                                 </div>
-                                {errors.password && (
-                                    <span className="field-error">{errors.password}</span>
-                                )}
                             </div>
 
                             <div className="form-group">
@@ -235,7 +205,6 @@ export default function RegisterPage({ onRegister }) {
                                         value={formData.confirmPassword}
                                         onChange={handleChange}
                                         placeholder="Confirm password"
-                                        className={errors.confirmPassword ? 'error' : ''}
                                     />
                                     <button
                                         type="button"
@@ -245,9 +214,6 @@ export default function RegisterPage({ onRegister }) {
                                         {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                     </button>
                                 </div>
-                                {errors.confirmPassword && (
-                                    <span className="field-error">{errors.confirmPassword}</span>
-                                )}
                             </div>
                         </div>
 

@@ -20,6 +20,7 @@ type ProjectHandler interface {
 	UpdateProject(c *gin.Context)
 	DeleteProject(c *gin.Context)
 	GetProjectMembers(c *gin.Context)
+	GetSummary(c *gin.Context)
 }
 
 type projectHandler struct {
@@ -197,4 +198,24 @@ func (h *projectHandler) GetProjectMembers(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, members)
+}
+
+func (h *projectHandler) GetSummary(c *gin.Context) {
+	ctx := mwcontext.GetValidationContext(c)
+	period := c.DefaultQuery("period", "30d")
+
+	if period != "7d" && period != "30d" && period != "90d" {
+		c.JSON(exceptions.NewApiError(
+			exceptions.BadRequest("invalid period, must be 7d, 30d or 90d"),
+		))
+		return
+	}
+
+	summary, err := h.projectService.GetSummary(c.Request.Context(), ctx.ProjectID, period)
+	if err != nil {
+		c.JSON(exceptions.NewApiError(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, summary)
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import {useNavigate, useParams, Link, useOutletContext} from 'react-router-dom';
 import {
     ArrowLeft,
     Mail, Calendar, Clock, Tag, Loader,
@@ -7,20 +7,28 @@ import {
     GitBranch, UserPlus, CheckCircle, AlertCircle,
     Pause, Play, Edit3, Trash2, Flag, AtSign, Blocks,
     LayersPlus, ShieldUser, Key, Handshake, UserCog,
-    Activity, Hash, Info, Pen, LogOut
+    Activity, Hash, Info, Pen, LogOut, MoveRight, GitPullRequestArrow
 } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { projectService } from '../services/projectService';
-import Preloader, { PriorityIcon } from "./CommonComponents";
+import Preloader, {
+    AdminPermissionsContent,
+    CustomUserAvatar, MemberPermissionsContent,
+    PriorityIcon,
+    RemoveMemberContent, TransferOwnershipContent
+} from "./CommonComponents";
 import styles from '../styles/ProfilePage.module.css';
+import ConfirmModal from "./modals/ConfirmModal";
+import {authService} from "../services/authService";
 
 const TASKS_PER_PAGE = 10;
 const ACTIVITIES_PER_PAGE = 20;
 
-export default function ProfilePage({ currentUser }) {
+export default function ProfilePage() {
     const navigate = useNavigate();
     const { projectId, userId } = useParams();
     const { showToast, handleApiError } = useToast();
+    const { onLogout, currentUser, members, project } = useOutletContext();
 
     const [activeTab, setActiveTab] = useState('activity');
     const [member, setMember] = useState(null);
@@ -44,10 +52,80 @@ export default function ProfilePage({ currentUser }) {
     const totalTasksPages = Math.ceil(tasksTotal / TASKS_PER_PAGE);
     const totalActivitiesPages = Math.ceil(activitiesTotal / ACTIVITIES_PER_PAGE);
 
-    const canManage = member && (
-        member.permission_level === 'owner' ||
-        member.permission_level === 'admin'
-    );
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editForm, setEditForm] = useState({
+        last_name: '',
+        first_name: '',
+        nickname: '',
+        email: '',
+        role_in_team: ''
+    });
+
+    const handleOpenEdit = () => {
+        setEditForm({
+            last_name: user.last_name || '',
+            first_name: user.first_name || '',
+            nickname: user.nickname || '',
+            email: user.email || '',
+            role_in_team: member.role_in_team || ''
+        });
+        setIsEditModalOpen(true);
+    };
+
+    const handleSaveProfile = async () => {
+        try {
+            setActionLoading(true);
+
+            // Обновляем профиль пользователя
+            await authService.updateProfile({
+                last_name: editForm.last_name,
+                first_name: editForm.first_name,
+                nickname: editForm.nickname,
+            });
+
+            showToast('Profile updated', 'success');
+            setIsEditModalOpen(false);
+            loadProfile();
+        } catch (error) {
+            handleApiError(error);
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const canManage = !isOwnProfile &&
+        (project?.owner_id === currentUser?.id ||
+            members?.find(m => m.user_id === currentUser?.id)?.permission_level === 'admin');
+
+    const [confirmModal, setConfirmModal] = useState(null);
+
+    const handleChangePermissions = async (userId, newRole) => {
+        try {
+            await projectService.updateMember(projectId, userId, { permission_level: newRole });
+            showToast('Permissions updated', 'success');
+        } catch (error) {
+            handleApiError(error);
+        }
+    };
+
+    const handleRemoveMember = async (userId) => {
+        try {
+            await projectService.removeMember(projectId, userId);
+            showToast('Member removed', 'success');
+            navigate(-1);
+        } catch (error) {
+            handleApiError(error);
+        }
+    };
+
+    const handleTransferOwnership = async (userId) => {
+        try {
+            await projectService.transferOwnership(projectId, userId);
+            showToast('Ownership transferred', 'success');
+        } catch (error) {
+            handleApiError(error);
+        }
+    };
 
     // Load profile
     const loadProfile = useCallback(async () => {
@@ -122,7 +200,6 @@ export default function ProfilePage({ currentUser }) {
         }
     }, [activeTab, targetUserId, loadTasks, loadActivities]);
 
-    // Profile actions
     const handleChangeRole = async (newRole) => {
         if (newRole === member.permission_level) return;
 
@@ -132,43 +209,6 @@ export default function ProfilePage({ currentUser }) {
                 permission_level: newRole
             });
             showToast(`Role changed to ${newRole}`, 'success');
-            loadProfile();
-        } catch (error) {
-            handleApiError(error);
-        } finally {
-            setActionLoading(false);
-        }
-    };
-
-    const handleRemoveMember = async () => {
-        if (!window.confirm(`Are you sure you want to remove ${user.first_name} ${user.last_name} from the project?`)) {
-            return;
-        }
-
-        try {
-            setActionLoading(true);
-            await projectService.removeMember(projectId, targetUserId);
-            showToast('Member removed successfully', 'success');
-            navigate(`/project/${projectId}/members`);
-        } catch (error) {
-            handleApiError(error);
-        } finally {
-            setActionLoading(false);
-        }
-    };
-
-    const handleTransferOwnership = async () => {
-        if (!window.confirm(
-            `Are you sure you want to transfer ownership to ${user.first_name} ${user.last_name}?\n\n` +
-            'You will become an admin member.'
-        )) {
-            return;
-        }
-
-        try {
-            setActionLoading(true);
-            await projectService.transferOwnership(projectId, targetUserId);
-            showToast('Ownership transferred successfully', 'success');
             loadProfile();
         } catch (error) {
             handleApiError(error);
@@ -218,183 +258,6 @@ export default function ProfilePage({ currentUser }) {
         }
     };
 
-    const getStatusIcon = (statusType) => {
-        switch (statusType) {
-            case 'completed': return <CheckCircle size={14} />;
-            case 'paused': return <Pause size={14} />;
-            case 'progress': return <Play size={14} />;
-            case 'cancelled': return <AlertCircle size={14} />;
-            default: return <Clock size={14} />;
-        }
-    };
-
-    const getActivityIcon = (type, fieldName) => {
-        if (type === 'comment') return <MessageSquare size={16} />;
-
-        switch (fieldName) {
-            case 'status': return <GitBranch size={16} />;
-            case 'assignee': return <UserPlus size={16} />;
-            case 'priority': return <AlertCircle size={16} />;
-            case 'title': return <Edit3 size={16} />;
-            case 'description': return <Edit3 size={16} />;
-            case 'task': return <LayersPlus size={16} />;
-            case 'due_date': return <Flag size={16} />;
-            case 'subtask': return <Blocks size={16} />;
-            default: return <Clock size={16} />;
-        }
-    };
-
-    const getActivityColor = (type, fieldName) => {
-        if (type === 'comment') return '#8B5CF6';
-        switch (fieldName) {
-            case 'task': return '#10B981';
-            default: return '#6366F1';
-        }
-    };
-
-    const formatActivityDescription = (activity) => {
-        if (activity.type === 'comment') {
-            return (
-                <div className={styles.activityDescription}>
-                    <span>commented on </span>
-                    <Link
-                        to={`/project/${projectId}/task/${activity.task_id}`}
-                        className={styles.activityLink}
-                    >
-                        {activity.task?.title || 'task'}
-                    </Link>
-                </div>
-            );
-        }
-
-        switch (activity.field_name) {
-            case 'status':
-                return (
-                    <div className={styles.activityDescription}>
-                        <span>changed status from </span>
-                        <span
-                            style={{
-                                background: `${activity.old_value?.color}20`,
-                                padding: '2px 8px',
-                                borderRadius: '8px',
-                                border: `1px solid ${activity.old_value?.color}50`,
-                                color: activity.old_value?.color,
-                                margin: '0 4px'
-                            }}
-                        >
-                            {activity.old_value?.name}
-                        </span>
-                        <span> to </span>
-                        <span
-                            style={{
-                                background: `${activity.new_value?.color}20`,
-                                padding: '2px 4px',
-                                borderRadius: '8px',
-                                border: `1px solid ${activity.new_value?.color}50`,
-                                color: activity.new_value?.color,
-                                margin: '0 4px'
-                            }}
-                        >
-                            {activity.new_value?.name}
-                        </span>
-                        <span> in </span>
-                        <Link
-                            to={`/project/${projectId}/task/${activity.task_id}`}
-                            className={styles.activityLink}
-                        >
-                            {activity.task?.title || 'task'}
-                        </Link>
-                    </div>
-                );
-            case 'assignee':
-                return (
-                    <div className={styles.activityDescription}>
-                        <span>changed assignee from </span>
-                        <span style={{ fontWeight: 400, color: 'var(--text-primary)' }}>
-                            { activity.old_value?.last_name ? `${activity.old_value?.last_name} ${activity.old_value?.first_name} (@${activity.old_value?.nickname})` : 'Unassigned'}
-                        </span>
-                        <span> to </span>
-                        <span style={{ fontWeight: 400, color: 'var(--text-primary)' }}>
-                            { activity.new_value?.last_name ? `${activity.new_value?.last_name} ${activity.new_value?.first_name} (@${activity.new_value?.nickname})` : 'Unassigned'}
-                        </span>
-                        <span> in </span>
-                        <Link
-                            to={`/project/${projectId}/task/${activity.task_id}`}
-                            className={styles.activityLink}
-                        >
-                            {activity.task?.title || 'task'}
-                        </Link>
-                    </div>
-                );
-            case 'priority':
-                return (
-                    <div className={styles.activityDescription}>
-                        <span>changed priority from </span>
-                        <span style={{
-                            color: getPriorityColor(activity.old_value),
-                            fontWeight: 500
-                        }}>
-                            {activity.old_value}
-                        </span>
-                        <span> to </span>
-                        <span style={{
-                            color: getPriorityColor(activity.new_value),
-                            fontWeight: 500
-                        }}>
-                            {activity.new_value}
-                        </span>
-                        <span> in </span>
-                        <Link
-                            to={`/project/${projectId}/task/${activity.task_id}`}
-                            className={styles.activityLink}
-                        >
-                            {activity.task?.title || 'task'}
-                        </Link>
-                    </div>
-                );
-            case 'task':
-                return (
-                    <div className={styles.activityDescription}>
-                        <span>created task </span>
-                        <Link
-                            to={`/project/${projectId}/task/${activity.task_id}`}
-                            className={styles.activityLink}
-                        >
-                            {activity.task?.title || 'task'}
-                        </Link>
-                    </div>
-                );
-            case 'title':
-                return (
-                    <div className={styles.activityDescription}>
-                        <span>changed task title from</span>
-                        <span style={{ margin: '0 4px', color: 'var(--text-primary)' }}> {activity.old_value} </span>
-                        <span> to </span>
-                        <span style={{ margin: '0 4px', color: 'var(--text-primary)' }}> {activity.new_value} </span>
-                        <span> in </span>
-                        <Link
-                            to={`/project/${projectId}/task/${activity.task_id}`}
-                            className={styles.activityLink}
-                        >
-                            {activity.task?.title || 'task'}
-                        </Link>
-                    </div>
-                );
-            default:
-                return (
-                    <div className={styles.activityDescription}>
-                        <span>changed {activity.field_name} in </span>
-                        <Link
-                            to={`/project/${projectId}/task/${activity.task_id}`}
-                            className={styles.activityLink}
-                        >
-                            {activity.task?.title || 'task'}
-                        </Link>
-                    </div>
-                );
-        }
-    };
-
     const formatTimeAgo = (dateString) => {
         const date = new Date(dateString);
         const now = new Date();
@@ -406,6 +269,23 @@ export default function ProfilePage({ currentUser }) {
         if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)}d ago`;
 
         return date.toLocaleDateString();
+    };
+
+    const formatDuration = (seconds) => {
+        if (!seconds && seconds !== 0) return null;
+        if (seconds < 60) return `${seconds}s`;
+
+        const days = Math.floor(seconds / 86400);
+        const hours = Math.floor((seconds % 86400) / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+
+        if (days > 0) {
+            return `${days}d${hours > 0 ? ` ${hours}h` : ''}`;
+        }
+        if (hours > 0) {
+            return `${hours}h${minutes > 0 ? ` ${minutes}m` : ''}`;
+        }
+        return `${minutes}m`;
     };
 
     if (loading) {
@@ -437,7 +317,7 @@ export default function ProfilePage({ currentUser }) {
         <div className={styles.page}>
             <div className={styles.header}>
                 <span className={styles.backBtn} onClick={() => navigate(-1)}>
-                    <ArrowLeft size={20} />
+                    <ArrowLeft size={16} />
                     <span>Back</span>
                 </span>
             </div>
@@ -472,52 +352,233 @@ export default function ProfilePage({ currentUser }) {
                             ) : activities.length > 0 ? (
                                 <>
                                     <div className={styles.activitiesList}>
-                                        {activities.map((activity) => (
-                                            <div key={activity.id} className={styles.activityItem}>
-                                                <div
-                                                    className={styles.activityIcon}
-                                                    style={{ backgroundColor: `${getActivityColor(activity.type, activity.field_name)}20` }}
-                                                >
-                                                    <div style={{ color: getActivityColor(activity.type, activity.field_name) }}>
-                                                        {getActivityIcon(activity.type, activity.field_name)}
+                                        {activities.map((activity) => {
+                                            const fieldLabels = {
+                                                task: 'Created task',
+                                                status: 'Changed status',
+                                                priority: 'Changed priority',
+                                                assignee: 'Changed assignee',
+                                                due_date: 'Changed due date',
+                                                start_date: 'Changed start date',
+                                                title: 'Changed title',
+                                                description: 'Changed description',
+                                                subtask: 'Changed subtasks'
+                                            };
+
+                                            const duration = formatDuration(activity.time_duration);
+
+                                            return (
+                                                <div key={activity.id} className={`${styles.activityItem} ${activity.field_name === 'task' ? styles.center : ''}`}>
+                                                    <div className={styles.activityIcon}>
+                                                        {activity.type === 'comment' ? (
+                                                            <MessageSquare size={14} />
+                                                        ) : (
+                                                            <GitPullRequestArrow size={14} />
+                                                        )}
+                                                    </div>
+                                                    <div className={styles.activityContent}>
+                                                        <div className={styles.activityHeader}>
+                                                            <span className={styles.activityType}>
+                                                                {activity.type === 'comment'
+                                                                    ? 'Commented'
+                                                                    : fieldLabels[activity.field_name] || `Changed ${activity.field_name}`
+                                                                }
+                                                                {activity.field_name !== 'task' && <span>in</span>}
+                                                                <Link
+                                                                    to={`/projects/${projectId}/task/${activity.task_id}`}
+                                                                    className={styles.activityTaskLink}
+                                                                >
+                                                                    {activity.task?.title || 'Task'}
+                                                                </Link>
+                                                            </span>
+                                                            <span className={styles.activityTime}>
+                                                                {formatTimeAgo(activity.created_at)}
+                                                            </span>
+                                                            {duration && activity.field_name !== 'task' && (
+                                                                <span className={styles.activityDuration}>
+                                                                    <Clock size={12} />
+                                                                    {duration}
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        {activity.type === 'comment' ? (
+                                                            <div className={styles.activityText}>
+                                                                {activity.content}
+                                                            </div>
+                                                        ) : (
+                                                            activity.field_name !== 'task' && (
+                                                                <div className={styles.activityChangeContent}>
+                                                                    <div className={styles.changeValues}>
+                                                                        {activity.field_name === 'status' && (
+                                                                            <>
+                                                                            <span
+                                                                                className={styles.changeBadge}
+                                                                                style={{
+                                                                                    backgroundColor: `${activity.old_value?.color}20`,
+                                                                                    color: activity.old_value?.color,
+                                                                                    borderColor: `${activity.old_value?.color}40`
+                                                                                }}
+                                                                            >
+                                                                                {activity.old_value?.name || 'None'}
+                                                                            </span>
+                                                                                <span
+                                                                                    className={styles.changeArrow}><MoveRight size={16}/></span>
+                                                                                <span
+                                                                                    className={styles.changeBadge}
+                                                                                    style={{
+                                                                                        backgroundColor: `${activity.new_value?.color}20`,
+                                                                                        color: activity.new_value?.color,
+                                                                                        borderColor: `${activity.new_value?.color}40`
+                                                                                    }}
+                                                                                >
+                                                                                {activity.new_value?.name}
+                                                                            </span>
+                                                                            </>
+                                                                        )}
+
+                                                                        {activity.field_name === 'priority' && (
+                                                                            <>
+                                                                            <span
+                                                                                className={`${styles.changePriority} ${styles[`priority${activity.old_value?.charAt(0).toUpperCase() + activity.old_value?.slice(1)}`] || ''}`}>
+                                                                                <PriorityIcon priorityId={`${activity.old_value}`}/> {activity.old_value}
+                                                                            </span>
+                                                                                <span
+                                                                                    className={styles.changeArrow}><MoveRight size={16} /> </span>
+                                                                                <span
+                                                                                    className={`${styles.changePriority} ${styles[`priority${activity.new_value?.charAt(0).toUpperCase() + activity.new_value?.slice(1)}`] || ''}`}>
+                                                                                    <PriorityIcon priorityId={`${activity.new_value}`}/> {activity.new_value}
+                                                                            </span>
+                                                                            </>
+                                                                        )}
+
+                                                                        {activity.field_name === 'assignee' && (
+                                                                            <>
+                                                                                <span className={styles.changeTextOld}>
+                                                                                    {activity.old_value?.last_name
+                                                                                        ? `${activity.old_value.last_name} ${activity.old_value.first_name}`
+                                                                                        : 'Unassigned'}
+                                                                                </span>
+                                                                                <span
+                                                                                    className={styles.changeArrow}>
+                                                                                    <MoveRight size={16}/>
+                                                                                </span>
+                                                                                <span className={styles.changeText}>
+                                                                                    {activity.new_value?.last_name
+                                                                                        ? `${activity.new_value.last_name} ${activity.new_value.first_name}`
+                                                                                        : 'Unassigned'}
+                                                                                </span>
+                                                                            </>
+                                                                        )}
+
+                                                                        {activity.field_name === 'title' && (
+                                                                            <>
+                                                                                <span
+                                                                                    className={styles.changeTextOld}>{activity.old_value}</span>
+                                                                                <span
+                                                                                    className={styles.changeArrow}><MoveRight size={16} /> </span>
+                                                                                <span
+                                                                                    className={styles.changeText}>{activity.new_value}</span>
+                                                                            </>
+                                                                        )}
+
+                                                                        {activity.field_name === 'subtask' && (
+                                                                            <>
+                                                                                <span className={styles.changeText}>
+                                                                                    {'added subtask '}
+                                                                                    <Link
+                                                                                        to={`/projects/${projectId}/task/${activity.new_value.at(-1)?.id}`}
+                                                                                        className={styles.activityTaskLink}>
+                                                                                        {activity.new_value.at(-1)?.title}
+                                                                                    </Link>
+                                                                                </span>
+                                                                            </>
+                                                                        )}
+
+                                                                        {activity.field_name === 'description' && (
+                                                                            <div className={styles.changeDescriptionBlock}>
+                                                                                <div className={styles.changeDescriptionSection}>
+                                                                                    <span className={styles.changeDescriptionLabel}>Old:</span>
+                                                                                    <div className={styles.changeDescriptionText}>
+                                                                                        {activity.old_value || 'Empty'}
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div className={styles.changeDescriptionSection}>
+                                                                                    <span className={styles.changeDescriptionLabel}>New:</span>
+                                                                                    <div className={styles.changeDescriptionText}>
+                                                                                        {activity.new_value || 'Empty'}
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+
+                                                                        {activity.field_name === 'due_date' && (
+                                                                            <>
+                                                                                <span className={styles.changeTextOld}>
+                                                                                    {activity.old_value ? new Date(activity.old_value).toLocaleDateString() : 'Not set'}
+                                                                                </span>
+                                                                                <span className={styles.changeArrow}><MoveRight size={16} /> </span>
+                                                                                <span className={styles.changeText}>
+                                                                                    {activity.new_value ? new Date(activity.new_value).toLocaleDateString() : 'Not set'}
+                                                                                </span>
+                                                                            </>
+                                                                        )}
+
+                                                                        {activity.field_name === 'start_date' && (
+                                                                            <>
+                                                                                <span className={styles.changeTextOld}>
+                                                                                    {activity.old_value ? new Date(activity.old_value).toLocaleDateString() : 'Not set'}
+                                                                                </span>
+                                                                                <span className={styles.changeArrow}><MoveRight size={16} /></span>
+                                                                                <span className={styles.changeText}>
+                                                                                    {activity.new_value ? new Date(activity.new_value).toLocaleDateString() : 'Not set'}
+                                                                                </span>
+                                                                            </>
+                                                                        )}
+
+                                                                        {!['status', 'priority', 'assignee', 'title', 'task', 'subtask', 'description', 'start_date', 'due_date'].includes(activity.field_name) && (
+                                                                            <span className={styles.changeText}>
+                                                                            {activity.field_name} updated
+                                                                        </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            )
+                                                        )}
                                                     </div>
                                                 </div>
-                                                <div className={styles.activityContent}>
-                                                    {formatActivityDescription(activity)}
-                                                    <span className={styles.activityTime}>
-                                                        {formatTimeAgo(activity.created_at)}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
 
-                                    <div className={styles.pagination}>
-                                        <button
-                                            className={styles.pageBtn}
-                                            onClick={() => loadActivities(activitiesOffset - ACTIVITIES_PER_PAGE)}
-                                            disabled={activitiesOffset === 0 || activitiesLoading}
-                                        >
-                                            <ChevronLeft size={16} />
-                                        </button>
-                                        <span className={styles.pageInfo}>
+                                    {totalActivitiesPages > 1 && (
+                                        <div className={styles.pagination}>
+                                            <button
+                                                className={styles.pageBtn}
+                                                onClick={() => loadActivities(activitiesOffset - ACTIVITIES_PER_PAGE)}
+                                                disabled={activitiesOffset === 0 || activitiesLoading}
+                                            >
+                                                <ChevronLeft size={16}/>
+                                            </button>
+                                            <span className={styles.pageInfo}>
                                             {Math.floor(activitiesOffset / ACTIVITIES_PER_PAGE) + 1} / {totalActivitiesPages || 1}
                                         </span>
-                                        <button
-                                            className={styles.pageBtn}
-                                            onClick={() => loadActivities(activitiesOffset + ACTIVITIES_PER_PAGE)}
-                                            disabled={
-                                                activitiesOffset + ACTIVITIES_PER_PAGE >= activitiesTotal ||
-                                                activitiesLoading
-                                            }
-                                        >
-                                            <ChevronRight size={16} />
-                                        </button>
-                                    </div>
+                                            <button
+                                                className={styles.pageBtn}
+                                                onClick={() => loadActivities(activitiesOffset + ACTIVITIES_PER_PAGE)}
+                                                disabled={
+                                                    activitiesOffset + ACTIVITIES_PER_PAGE >= activitiesTotal ||
+                                                    activitiesLoading
+                                                }
+                                            >
+                                                <ChevronRight size={16}/>
+                                            </button>
+                                        </div>
+                                    )}
                                 </>
                             ) : (
                                 <div className={styles.emptyState}>
-                                    <Clock size={48} />
+                                    <Clock size={48}/>
                                     <h3>No activity yet</h3>
                                     <p>This user hasn't made any actions yet</p>
                                 </div>
@@ -540,7 +601,7 @@ export default function ProfilePage({ currentUser }) {
                                         {tasks.map((task) => (
                                             <Link
                                                 key={task.id}
-                                                to={`/project/${projectId}/task/${task.id}`}
+                                                to={`/projects/${projectId}/task/${task.id}`}
                                                 className={styles.taskItem}
                                             >
                                                 <div className={styles.taskHeader}>
@@ -586,7 +647,7 @@ export default function ProfilePage({ currentUser }) {
                                                     </div>
                                                     {task.due_date && (
                                                         <div className={styles.taskDueDate}>
-                                                            <Flag size={12}/>
+                                                        <Flag size={12}/>
                                                             <span>Due {new Date(task.due_date).toLocaleDateString()}</span>
                                                         </div>
                                                     )}
@@ -708,7 +769,7 @@ export default function ProfilePage({ currentUser }) {
                             <div className={styles.infoItem}>
                                 <span><Handshake size={16}/> Granted By</span>
                                 <Link
-                                    to={`/project/${projectId}/member/${member.granted_by_id}`}
+                                    to={`/projects/${projectId}/member/${member.granted_by_id}`}
                                     className={styles.linkToUser}
                                 >
                                     {`${member.granted_by.last_name} ${member.granted_by.first_name}`}
@@ -732,6 +793,7 @@ export default function ProfilePage({ currentUser }) {
                             <div className={styles.actionButtons}>
                                 <button
                                     className={styles.actionBtn}
+                                    onClick={handleOpenEdit}
                                     disabled={actionLoading}
                                 >
                                     <Pen size={16}/>
@@ -740,17 +802,21 @@ export default function ProfilePage({ currentUser }) {
                                 <button
                                     className={styles.actionBtn}
                                     disabled={actionLoading}
+                                    onClick={onLogout}
                                 >
                                     <LogOut size={16}/>
                                     Logout
                                 </button>
                             </div>
-                        ) : (
+                        ) : canManage ? (
                             <div className={styles.actionButtons}>
                                 {member.permission_level !== 'admin' && (
                                     <button
                                         className={styles.actionBtn}
-                                        onClick={() => handleChangeRole('admin')}
+                                        onClick={() => setConfirmModal({
+                                            title: 'Set Admin Permission',
+                                            type: 'permissions-admin'
+                                        })}
                                         disabled={actionLoading}
                                     >
                                         Promote to Admin
@@ -759,7 +825,10 @@ export default function ProfilePage({ currentUser }) {
                                 {member.permission_level === 'admin' && (
                                     <button
                                         className={`${styles.actionBtn}`}
-                                        onClick={() => handleChangeRole('member')}
+                                        onClick={() => setConfirmModal({
+                                            title: 'Set Member Permission',
+                                            type: 'permissions-member'
+                                        })}
                                         disabled={actionLoading}
                                     >
                                         Demote to Member
@@ -767,23 +836,114 @@ export default function ProfilePage({ currentUser }) {
                                 )}
                                 <button
                                     className={`${styles.actionBtn}`}
-                                    onClick={handleTransferOwnership}
+                                    onClick={() => setConfirmModal({
+                                        title: 'Transfer Ownership',
+                                        confirmVariant: 'danger',
+                                        confirmText: 'Transfer Ownership',
+                                        type: 'transfer-ownership'
+                                    })}
                                     disabled={actionLoading}
                                 >
                                     Transfer Ownership
                                 </button>
                                 <button
                                     className={`${styles.actionBtn}`}
-                                    onClick={handleRemoveMember}
+                                    onClick={() => setConfirmModal({
+                                        title: 'Remove Member',
+                                        confirmVariant: 'danger',
+                                        confirmText: 'Remove Member',
+                                        type: 'remove-member'
+                                    })}
+
                                     disabled={actionLoading}
                                 >
                                     Remove from Project
                                 </button>
                             </div>
-                        )}
+                        ) : null}
                     </div>
                 </div>
             </div>
+            <ConfirmModal
+                isOpen={!!confirmModal}
+                title={confirmModal?.title}
+                confirmVariant={confirmModal?.confirmVariant || 'primary'}
+                confirmText={confirmModal?.confirmText}
+                onClose={() => setConfirmModal(null)}
+                onConfirm={() => {
+                    if (confirmModal?.type === 'permissions-admin') {
+                        handleChangePermissions(member?.user_id, 'admin');
+                    } else if (confirmModal?.type === 'permissions-member') {
+                        handleChangePermissions(member?.user_id, 'member');
+                    } else if (confirmModal?.type === 'remove-member') {
+                        handleRemoveMember(member?.user_id);
+                    } else if (confirmModal?.type === 'transfer-ownership') {
+                        handleTransferOwnership(member?.user_id);
+                    }
+                    setConfirmModal(null);
+                }}
+            >
+                {confirmModal && (() => {
+                    switch(confirmModal.type) {
+                        case 'permissions-member':
+                            return <MemberPermissionsContent member={member} />;
+                        case 'permissions-admin':
+                            return <AdminPermissionsContent member={member} />;
+                        case 'remove-member':
+                            return <RemoveMemberContent member={member} />;
+                        case 'transfer-ownership':
+                            return <TransferOwnershipContent member={member} />;
+                        default:
+                            return null;
+                    }
+                })()}
+            </ConfirmModal>
+            <ConfirmModal
+                isOpen={isEditModalOpen}
+                title="Edit Profile"
+                confirmText="Save Changes"
+                onClose={() => setIsEditModalOpen(false)}
+                onConfirm={handleSaveProfile}
+                isLoading={actionLoading}
+            >
+                <div className={styles.editProfileForm}>
+                    <div className={styles.editFieldGroup}>
+                        <label className={styles.editLabel}>Last Name</label>
+                        <input
+                            type="text"
+                            className={styles.editInput}
+                            value={editForm.last_name}
+                            onChange={(e) => setEditForm(prev => ({ ...prev, last_name: e.target.value }))}
+                            placeholder="Last name"
+                        />
+                    </div>
+
+                    <div className={styles.editFieldGroup}>
+                        <label className={styles.editLabel}>First Name</label>
+                        <input
+                            type="text"
+                            className={styles.editInput}
+                            value={editForm.first_name}
+                            onChange={(e) => setEditForm(prev => ({ ...prev, first_name: e.target.value }))}
+                            placeholder="First name"
+                        />
+                    </div>
+
+                    <div className={styles.editFieldGroup}>
+                        <label className={styles.editLabel}>Nickname</label>
+                        <div className={styles.editInputWithPrefix}>
+                            <span className={styles.editPrefix}>@</span>
+                            <input
+                                type="text"
+                                className={styles.editInputPrefixed}
+                                value={editForm.nickname}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, nickname: e.target.value }))}
+                                placeholder="nickname"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </ConfirmModal>
         </div>
     );
 }

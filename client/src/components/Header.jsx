@@ -20,21 +20,21 @@ export default function Header({ project, user, onActivityToggle, projects = [] 
             id: 'new-project',
             name: 'New Project...',
             type: 'action',
-            action: () => navigate('/project/new')
+            action: () => navigate('/projects/new')
         });
 
         items.push({
             id: 'settings',
             name: 'Settings...',
             type: 'action',
-            action: () => navigate(`/project/${project.id}/settings`),
+            action: () => navigate(`/projects/${project.id}/settings`),
         });
 
         items.push({
             id: project.id,
             name: project.name,
             type: 'project',
-            action: () => navigate(`/project/${project.id}/board`)
+            action: () => navigate(`/projects/${project.id}/board`)
         })
 
         // Проекты пользователя
@@ -44,7 +44,7 @@ export default function Header({ project, user, onActivityToggle, projects = [] 
                     id: proj.id,
                     name: proj.name,
                     type: 'project',
-                    action: () => navigate(`/project/${proj.id}/board`)
+                    action: () => navigate(`/projects/${proj.id}/board`)
                 });
             }
         });
@@ -103,17 +103,6 @@ export default function Header({ project, user, onActivityToggle, projects = [] 
                 </div>
             </div>
 
-            <div className="header-search">
-                <Search className="search-icon" size={18} />
-                <input
-                    type="text"
-                    placeholder="Search tasks... (e.g., 'my tasks #bug before friday')"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="search-input"
-                />
-            </div>
-
             <div className="header-right">
                 <button className="icon-button" onClick={onActivityToggle}>
                     <Zap size={20} />
@@ -122,7 +111,7 @@ export default function Header({ project, user, onActivityToggle, projects = [] 
                     <Bell size={20} />
                     <span className="notification-badge"></span>
                 </button>
-                <Link to={`/project/${projectId}/profile`} className="user-profile-avatar">
+                <Link to={`/projects/${projectId}/profile`} className="user-profile-avatar">
                     <CustomUserAvatar user={user} color={user?.color} size={'100%'} fontSize={'14px'} />
                 </Link>
             </div>

@@ -176,16 +176,21 @@
 .activitiesList {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
 }
 
 .activityItem {
     display: flex;
-    align-items: flex-start;
     gap: 12px;
-    padding: 12px;
+    padding: 12px 16px;
+    border: 1px solid var(--border-color);
     border-radius: 8px;
+    margin-bottom: 16px;
     transition: background 0.2s;
+}
+
+.activityItem.center {
+    align-items: center;
 }
 
 .activityItem:hover {
@@ -195,11 +200,14 @@
 .activityIcon {
     width: 32px;
     height: 32px;
-    border-radius: 8px;
+    border-radius: 6px;
+    background: rgba(99, 102, 241, 0.1);
     display: flex;
     align-items: center;
     justify-content: center;
+    color: #6366F1;
     flex-shrink: 0;
+    margin-top: 2px;
 }
 
 .activityContent {
@@ -207,30 +215,186 @@
     min-width: 0;
 }
 
-.activityDescription {
-    color: var(--text-secondary);
-    font-size: 14px;
-    line-height: 1.5;
+.activityHeader {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     margin-bottom: 4px;
 }
 
-.activityDescription span {
-    color: var(--text-secondary);
-}
-
-.activityLink {
-    color: var(--accent-primary);
-    text-decoration: none;
+.activityType {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
     font-weight: 500;
-}
-
-.activityLink:hover {
-    text-decoration: underline;
+    color: var(--text-primary);
 }
 
 .activityTime {
     font-size: 12px;
     color: var(--text-tertiary);
+}
+
+.activityDuration {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    background: var(--bg-primary);
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: auto;
+}
+
+.activityText {
+    display: flex;
+    align-items: center;
+    border-left: #7C3AED solid 3px;
+    padding: 8px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.activityChangeContent {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.changeValues {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+    margin-bottom: 4px;
+}
+
+.changeBadge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border: 1px solid;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.changePriority {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.changePriority svg {
+    margin-right: 4px;
+}
+
+.changeText {
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+.changeTextOld {
+    font-size: 13px;
+    color: var(--text-tertiary);
+}
+
+.changeArrow {
+    display: flex;
+    align-items: center;
+    color: var(--text-tertiary);
+    font-size: 14px;
+    margin: 0 4px;
+}
+
+.activityTaskLink {
+    color: var(--accent-primary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    display: inline-block;
+    margin-top: 2px;
+}
+
+.activityTaskLink:hover {
+    text-decoration: underline;
+}
+
+/* Description change block */
+.changeDescriptionBlock {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+}
+
+.changeDescriptionSection {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+}
+
+.changeDescriptionLabel {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    flex-shrink: 0;
+}
+
+.changeDescriptionText {
+    font-size: 12px;
+    color: var(--text-secondary);
+    background: var(--bg-primary);
+    padding: 8px 12px;
+    border-radius: 6px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 200px;
+    min-height: 44px;
+    overflow-y: auto;
+    line-height: 1.4;
+    flex: 1;
+}
+
+.changeDescriptionText:empty::after {
+    content: 'Empty';
+    color: var(--text-tertiary);
+    font-style: italic;
+}
+
+/* Priority colors */
+.priorityLow {
+    background: rgba(107, 114, 128, 0.2);
+    color: #6B7280;
+}
+
+.priorityMedium {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3B82F6;
+}
+
+.priorityHigh {
+    background: rgba(249, 115, 22, 0.2);
+    color: #F97316;
+}
+
+.priorityCritical {
+    background: rgba(239, 68, 68, 0.2);
+    color: #EF4444;
 }
 
 /* Tasks */
@@ -556,4 +720,78 @@
     align-items: center;
     gap: 16px;
     margin-top: 8px;
+}
+
+/* Edit Profile Form */
+.editProfileForm {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.editFieldGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.editLabel {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.editInput {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 0.2s;
+    outline: none;
+}
+
+.editInput:focus {
+    border-color: var(--accent-primary);
+}
+
+.editInput::placeholder {
+    color: var(--text-tertiary);
+}
+
+.editInputWithPrefix {
+    display: flex;
+    align-items: center;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+}
+
+.editInputWithPrefix:focus-within {
+    border-color: var(--accent-primary);
+}
+
+.editPrefix {
+    padding: 10px 0 10px 14px;
+    color: var(--text-tertiary);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.editInputPrefixed {
+    flex: 1;
+    padding: 10px 14px 10px 4px;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
 }

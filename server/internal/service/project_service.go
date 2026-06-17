@@ -7,11 +7,13 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"sync"
 	"task-tracker/internal/dto"
 	"task-tracker/internal/models"
 	"task-tracker/internal/uow"
 	"task-tracker/pkg/exceptions"
 	pkg "task-tracker/pkg/parser"
+	"time"
 )
 
 type ProjectService interface {
@@ -23,6 +25,7 @@ type ProjectService interface {
 	GetUserProjects(ctx context.Context, userID uuid.UUID) ([]models.Project, error)
 	GetProjectMembers(ctx context.Context, projectID uuid.UUID) ([]models.ProjectMember, error)
 	UpdateUserLastSeen(ctx context.Context, projectID, userID uuid.UUID) error
+	GetSummary(ctx context.Context, projectID uuid.UUID, period string) (*dto.ProjectSummary, error)
 }
 
 type projectService struct {
@@ -87,7 +90,7 @@ func (s *projectService) CreateCustom(ctx context.Context, userID uuid.UUID, req
 				StatusID:  status.ID,
 				Position:  *statusReq.BoardPosition,
 			}
-			if err := uowTx.BoardRepo().CreateColumn(ctx, column); err != nil {
+			if err = uowTx.BoardRepo().CreateColumn(ctx, column); err != nil {
 				uowTx.Rollback()
 				return nil, fmt.Errorf("failed to create board column for status '%s': %w", statusReq.Name, err)
 			}
@@ -244,4 +247,77 @@ func (s *projectService) GetProjectMembers(ctx context.Context, projectID uuid.U
 func (s *projectService) UpdateUserLastSeen(ctx context.Context, projectID, userID uuid.UUID) error {
 	uowTx := s.uowFactory.New()
 	return uowTx.MemberRepo().UpdateUserLastSeen(ctx, projectID, userID)
+}
+
+func (s *projectService) GetSummary(ctx context.Context, projectID uuid.UUID, period string) (*dto.ProjectSummary, error) {
+	uowTx := s.uowFactory.New()
+
+	now := time.Now().UTC()
+	endDate := now
+
+	var startDate, prevStartDate time.Time
+
+	switch period {
+	case "7d":
+		startDate = now.AddDate(0, 0, -7)
+		prevStartDate = now.AddDate(0, 0, -14)
+	case "90d":
+		startDate = now.AddDate(0, 0, -90)
+		prevStartDate = now.AddDate(0, 0, -180)
+	default: // 30d
+		startDate = now.AddDate(0, 0, -30)
+		prevStartDate = now.AddDate(0, 0, -60)
+	}
+
+	summary := &dto.ProjectSummary{
+		Period:    period,
+		StartDate: startDate,
+		EndDate:   endDate,
+	}
+
+	var wg sync.WaitGroup
+	var err error
+
+	wg.Add(7)
+
+	go func() {
+		defer wg.Done()
+		summary.Metrics, err = uowTx.SummaryRepo().GetMetrics(ctx, projectID, startDate, endDate, prevStartDate, startDate)
+	}()
+	go func() {
+		defer wg.Done()
+		summary.Burnup, _ = uowTx.SummaryRepo().GetBurnupData(ctx, projectID, startDate, endDate)
+	}()
+	go func() {
+		defer wg.Done()
+		summary.ByStatus, _ = uowTx.SummaryRepo().GetStatusDistribution(ctx, projectID, startDate, endDate)
+	}()
+	go func() {
+		defer wg.Done()
+		summary.TopMembers, _ = uowTx.SummaryRepo().GetTopMembers(ctx, projectID, startDate, endDate)
+	}()
+	go func() {
+		defer wg.Done()
+		summary.ByPriority, _ = uowTx.SummaryRepo().GetPriorityBreakdown(ctx, projectID, startDate, endDate)
+	}()
+	go func() {
+		defer wg.Done()
+		summary.Overdue, _ = uowTx.SummaryRepo().GetOverdueTasks(ctx, projectID)
+	}()
+	go func() {
+		defer wg.Done()
+		summary.CompletedByWeek, _ = uowTx.SummaryRepo().GetCompletedByWeek(ctx, projectID, startDate, endDate)
+	}()
+
+	wg.Wait()
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(summary.TopMembers) <= 1 {
+		summary.RecentActivity, _ = uowTx.SummaryRepo().GetRecentActivity(ctx, projectID, 5)
+	}
+
+	return summary, nil
 }

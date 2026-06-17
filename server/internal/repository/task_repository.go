@@ -61,7 +61,7 @@ func (r *taskRepo) Update(ctx context.Context, task *models.Task) error {
 	return r.db.WithContext(ctx).
 		Model(&models.Task{}).
 		Where("id = ?", task.ID).
-		Select("title", "description", "assignee_id", "status_id", "priority", "start_date", "due_date", "closed_at").
+		Select("title", "description", "assignee_id", "status_id", "status_changed_at", "priority", "start_date", "due_date", "closed_at").
 		Updates(task).Error
 }
 
@@ -173,6 +173,12 @@ func (r *taskRepo) applyFilters(query *gorm.DB, filter dto.TaskFilter) *gorm.DB 
 	}
 	if filter.DueDateTo != nil {
 		query = query.Where("tasks.due_date <= ?", filter.DueDateTo)
+	}
+	if filter.IsOpened {
+		query = query.Where("tasks.closed_at IS NULL")
+	}
+	if filter.IsClosed {
+		query = query.Where("tasks.closed_at IS NOT NULL")
 	}
 	if filter.ClosedAtFrom != nil {
 		query = query.Where("tasks.closed_at >= ?", filter.ClosedAtFrom)
@@ -312,6 +318,8 @@ func (r *taskRepo) GetTaskWithDetails(ctx context.Context, id uuid.UUID) (*model
 		Preload("Subtasks.Assignee").
 		Preload("Subtasks.Status").
 		Preload("Tags").
+		Preload("Attachments").
+		Preload("Attachments.Uploader").
 		First(&task, "id = ?", id).Error
 	return &task, err
 }

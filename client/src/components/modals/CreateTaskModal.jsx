@@ -8,12 +8,12 @@ import {
     UserX,
     Flag
 } from 'lucide-react';
-import '../styles/CreateTaskModal.css';
-import CustomInputSelector from "./CustomInputSelector";
-import CustomSelector from "./CustomSelector";
-import { CustomUserAvatar, PriorityIcon } from "./CommonComponents";
-import AddAttachment from "./AddAttachment";
-import { projectService } from '../services/projectService';
+import '../../styles/CreateTaskModal.css';
+import CustomInputSelector from "../CustomInputSelector";
+import CustomSelector from "../CustomSelector";
+import { CustomUserAvatar, PriorityIcon } from "../CommonComponents";
+import AddAttachment from "../AddAttachment";
+import { projectService } from '../../services/projectService';
 
 export default function CreateTaskModal({
                                             isOpen,
@@ -45,10 +45,10 @@ export default function CreateTaskModal({
     const [isDataLoading, setIsDataLoading] = useState(true);
 
     const priorities = [
-        { id: 'critical', label: 'Critical', color: 'var(--error)' },
-        { id: 'high', label: 'High', color: 'var(--warning)' },
-        { id: 'medium', label: 'Medium', color: 'var(--info)' },
-        { id: 'low', label: 'Low', color: 'var(--text-tertiary)' }
+        { id: 'critical', label: 'Critical', color: '#EF4444' },
+        { id: 'high', label: 'High', color: '#F59E0B' },
+        { id: 'medium', label: 'Medium', color: '#3B82F6' },
+        { id: 'low', label: 'Low', color: '#6B7280' }
     ];
 
     useEffect(() => {
@@ -159,7 +159,7 @@ export default function CreateTaskModal({
             const dueDate = formData.due_date ? new Date(formData.due_date).toISOString() : null;
 
             try {
-                // Подготавливаем данные для отправки
+                // 1. Создаем задачу (без вложений)
                 const taskData = {
                     title: formData.title,
                     description: formData.description,
@@ -172,17 +172,35 @@ export default function CreateTaskModal({
                     tag_ids: formData.tags.map(tag => tag.id)
                 };
 
-                // Создаем задачу через API
                 const newTask = await projectService.createTask(projectId, taskData);
 
-                // Если есть attachments, загружаем их
-                /*
+                // 2. Загружаем вложения отдельными запросами
                 if (formData.attachments.length > 0) {
-                    for (const attachment of formData.attachments) {
-                        await projectService.uploadAttachment(projectId, newTask.id, attachment.file);
-                    }
+                    const uploadPromises = formData.attachments
+                        .filter(att => att.file) // Только реальные файлы (не ссылки)
+                        .map(async (att) => {
+                            try {
+                                await projectService.uploadAttachment(
+                                    projectId,
+                                    newTask.id,
+                                    att.file
+                                );
+                                return { success: true, filename: att.name || att.file.name };
+                            } catch (error) {
+                                console.error(`Failed to upload ${att.name || att.file.name}:`, error);
+                                return { success: false, filename: att.name || att.file.name, error };
+                            }
+                        });
+
+                    const results = await Promise.allSettled(uploadPromises);
+
+                    // Логируем результаты
+                    results.forEach((result, index) => {
+                        if (result.status === 'rejected') {
+                            console.error(`Upload ${index + 1} failed:`, result.reason);
+                        }
+                    });
                 }
-                */
 
                 onCreateTask(newTask);
                 resetForm();
@@ -237,8 +255,8 @@ export default function CreateTaskModal({
 
     const renderPriority = (priority) => (
         <div className="modal-priority-renderer">
-            <PriorityIcon priorityId={priority.id} size={24} />
-            {priority.label}
+            <PriorityIcon priorityId={priority.id} size={20} />
+            <span style={{ color: priority.color}}>{priority.label.toUpperCase()}</span>
         </div>
     );
 
@@ -329,6 +347,7 @@ export default function CreateTaskModal({
                             renderItem={renderPriority}
                             getItemId={(priority) => priority.id}
                             getItemName={(priority) => priority.label}
+                            dropdownClassName={"priority-dropdown"}
                         />
                     </div>
 
@@ -373,7 +392,7 @@ export default function CreateTaskModal({
                                         const member = users.find(u => u.user.id === formData.assignee_id);
                                         return member ?
                                             <div>
-                                                <CustomUserAvatar user={member.user} size={'24px'} fontSize={'10px'}/>
+                                                <CustomUserAvatar user={member.user} color={member.user.color} size={'24px'} fontSize={'10px'}/>
                                                 {member.user.last_name} {member.user.first_name}
                                             </div> :
                                             <div>

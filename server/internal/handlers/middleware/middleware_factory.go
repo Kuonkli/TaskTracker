@@ -377,7 +377,7 @@ func (mf *Factory) loadProject(projectIDParam string, requiredLevel string) gin.
 				go func(pid, uid uuid.UUID) {
 					updateCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 					defer cancel()
-
+					//fmt.Printf("[INFO] Update last_seen for project %s, user %s: %v\n", pid, uid, err)
 					if err = mf.projectService.UpdateUserLastSeen(updateCtx, pid, uid); err != nil {
 						// Логируем ошибку, но не влияем на ответ клиента
 						fmt.Printf("[WARN] Failed to update last_seen for project %s, user %s: %v\n", pid, uid, err)

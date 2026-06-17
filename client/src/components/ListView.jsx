@@ -1,4 +1,3 @@
-// ListView.jsx (исправленная версия)
 import React, { useState, useEffect } from 'react';
 import {Link, useNavigate, useParams, useSearchParams} from 'react-router-dom';
 import {
@@ -16,242 +15,180 @@ import {
     ArrowUpNarrowWide
 } from 'lucide-react';
 import MiniCalendar from './MiniCalendar';
-import FilterModal from './FilterModal';
+import FilterModal from './modals/FilterModal';
 import '../styles/ListView.css';
 import Preloader, { CustomUserAvatar, PriorityIcon } from "./CommonComponents";
 import CustomSelector from "./CustomSelector";
 import {projectService} from "../services/projectService";
 
+const tasksPerPage = 15;
+
+const sortFields = [
+    { id: 'created_at', name: 'Created At' },
+    { id: 'priority', name: 'Priority' },
+    { id: 'status', name: 'Status' },
+    { id: 'start_date', name: 'Start Date' },
+    { id: 'due_date', name: 'Due Date' }
+];
+
+const parseFiltersFromUrl = (params) => {
+    const filters = {};
+
+    const statusIds = params.get('statusIds');
+    if (statusIds) filters.statusIds = statusIds.split(',');
+
+    const priorities = params.get('priorities');
+    if (priorities) filters.priorities = priorities.split(',');
+
+    const assigneeId = params.get('assigneeId');
+    if (assigneeId) filters.assigneeId = assigneeId;
+
+    const creatorId = params.get('creatorId');
+    if (creatorId) filters.creatorId = creatorId;
+
+    const tagIds = params.get('tagIds');
+    if (tagIds) filters.tagIds = tagIds.split(',');
+
+    const taskType = params.get('taskType');
+    if (taskType) filters.taskType = taskType;
+
+    const search = params.get('search');
+    if (search) filters.search = search;
+
+    const createdAt = params.get('createdAt');
+    if (createdAt) {
+        const [from, to] = createdAt.split('/');
+        filters.createdAtRange = { from: from || '', to: to || '' };
+    }
+
+    const startDate = params.get('startDate');
+    if (startDate) {
+        const [from, to] = startDate.split('/');
+        filters.startDateRange = { from: from || '', to: to || '' };
+    }
+
+    const dueDate = params.get('dueDate');
+    if (dueDate) {
+        const [from, to] = dueDate.split('/');
+        filters.dueDateRange = { from: from || '', to: to || '' };
+    }
+
+    const closedAt = params.get('closedAt');
+    if (closedAt) {
+        const [from, to] = closedAt.split('/');
+        filters.closedAtRange = { from: from || '', to: to || '' };
+    }
+
+    return filters;
+};
+
+const filtersToUrlParams = (filters) => {
+    const params = new URLSearchParams();
+
+    if (filters.statusIds?.length > 0) params.set('statusIds', filters.statusIds.join(','));
+    if (filters.priorities?.length > 0) params.set('priorities', filters.priorities.join(','));
+    if (filters.assigneeId) params.set('assigneeId', filters.assigneeId);
+    if (filters.creatorId) params.set('creatorId', filters.creatorId);
+    if (filters.tagIds?.length > 0) params.set('tagIds', filters.tagIds.join(','));
+    if (filters.taskType && filters.taskType !== 'all') params.set('taskType', filters.taskType);
+    if (filters.search) params.set('search', filters.search);
+
+    if (filters.createdAtRange?.from || filters.createdAtRange?.to) {
+        params.set('createdAt', `${filters.createdAtRange.from || ''}/${filters.createdAtRange.to || ''}`);
+    }
+    if (filters.startDateRange?.from || filters.startDateRange?.to) {
+        params.set('startDate', `${filters.startDateRange.from || ''}/${filters.startDateRange.to || ''}`);
+    }
+    if (filters.dueDateRange?.from || filters.dueDateRange?.to) {
+        params.set('dueDate', `${filters.dueDateRange.from || ''}/${filters.dueDateRange.to || ''}`);
+    }
+    if (filters.closedAtRange?.from || filters.closedAtRange?.to) {
+        params.set('closedAt', `${filters.closedAtRange.from || ''}/${filters.closedAtRange.to || ''}`);
+    }
+
+    return params;
+};
+
 export default function ListView() {
     const { projectId } = useParams();
     const [searchParams, setSearchParams] = useSearchParams();
-    const navigate = useNavigate();
 
     const [selectedTask, setSelectedTask] = useState(null);
     const [selectedDate, setSelectedDate] = useState(null);
     const [loading, setLoading] = useState(false);
     const [tasks, setTasks] = useState([]);
-    const [totalTasks, setTotalTasks] = useState(null);
+    const [totalTasks, setTotalTasks] = useState(0);
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-    const [activeFilters, setActiveFilters] = useState({});
 
-    // Данные для фильтров
-    const [projectMembers, setProjectMembers] = useState([]);
-    const [projectStatuses, setProjectStatuses] = useState([]);
-    const [projectTags, setProjectTags] = useState([]);
-
-    const tasksPerPage = 15;
-
-    const sortFields = [
-        { id: 'created_at', name: 'Created At' },
-        { id: 'priority', name: 'Priority' },
-        { id: 'status', name: 'Status' },
-        { id: 'start_date', name: 'Start Date' },
-        { id: 'due_date', name: 'Due Date' }
-    ];
-
-    // Получаем значения из URL
-    const [sortOrder, setSortOrder] = useState(() => {
-        const order = searchParams.get('sortOrder');
-        return order === 'ASC' || order === 'DESC' ? order : 'DESC';
-    });
-
+    // Инициализация из URL
+    const [activeFilters, setActiveFilters] = useState(() => parseFiltersFromUrl(searchParams));
+    const [sortOrder, setSortOrder] = useState(() => searchParams.get('sortOrder') === 'ASC' ? 'ASC' : 'DESC');
     const [selectedSortField, setSelectedSortField] = useState(() => {
         const field = searchParams.get('sortField');
-        const validField = sortFields.find(f => f.id === field);
-        return validField || sortFields[0];
+        return sortFields.find(f => f.id === field) || sortFields[0];
     });
-
     const [currentPage, setCurrentPage] = useState(() => {
         const page = parseInt(searchParams.get('page'));
         return page > 0 ? page : 1;
     });
 
+    const [projectMembers, setProjectMembers] = useState([]);
+    const [projectStatuses, setProjectStatuses] = useState([]);
+    const [projectTags, setProjectTags] = useState([]);
+
     const totalPages = Math.ceil(totalTasks / tasksPerPage);
 
-    // Функция для построения параметров запроса
-    const buildApiParams = () => {
+    // Синхронизация URL ← состояние
+    useEffect(() => {
         const params = new URLSearchParams();
 
-        // Пагинация
+        if (currentPage > 1) params.set('page', currentPage);
+        if (selectedSortField.id !== 'created_at') params.set('sortField', selectedSortField.id);
+        if (sortOrder !== 'DESC') params.set('sortOrder', sortOrder);
+
+        // Добавляем фильтры
+        const filterParams = filtersToUrlParams(activeFilters);
+        filterParams.forEach((value, key) => params.set(key, value));
+
+        setSearchParams(params, { replace: true });
+    }, [currentPage, selectedSortField, sortOrder, activeFilters, setSearchParams]);
+
+    // Загрузка данных проекта
+    useEffect(() => {
+        if (!projectId) return;
+        projectService.getProjectDetails(projectId).then(project => {
+            setProjectMembers(project.members || []);
+            setProjectStatuses(project.statuses || []);
+            setProjectTags(project.tags || []);
+        }).catch(console.error);
+    }, [projectId]);
+
+    // Загрузка задач
+    useEffect(() => {
+        if (!projectId) return;
+
+        setLoading(true);
+        const params = new URLSearchParams();
         params.set('page', currentPage);
         params.set('len', tasksPerPage);
-
-        // Сортировка
         params.set('sortField', selectedSortField.id);
         params.set('sortOrder', sortOrder);
 
-        // Фильтры
-        if (activeFilters.statusIds?.length > 0) {
-            params.set('statusIds', activeFilters.statusIds.join(','));
-        }
-        if (activeFilters.priorities?.length > 0) {
-            params.set('priorities', activeFilters.priorities.join(','));
-        }
-        if (activeFilters.assigneeId) {
-            params.set('assigneeId', activeFilters.assigneeId);
-        }
-        if (activeFilters.creatorId) {
-            params.set('creatorId', activeFilters.creatorId);
-        }
-        if (activeFilters.tagIds?.length > 0) {
-            params.set('tagIds', activeFilters.tagIds.join(','));
-        }
-        if (activeFilters.taskType === 'root') {
-            params.set('isSubtask', 'false');
-        } else if (activeFilters.taskType === 'subtask') {
-            params.set('isSubtask', 'true');
-        }
-        if (activeFilters.search) {
-            params.set('search', activeFilters.search);
-        }
-        if (activeFilters.createdAtRange?.from || activeFilters.createdAtRange?.to) {
-            const range = `${activeFilters.createdAtRange.from || ''}/${activeFilters.createdAtRange.to || ''}`;
-            if (range !== '/') params.set('createdAt', range);
-        }
-        if (activeFilters.startDateRange?.from || activeFilters.startDateRange?.to) {
-            const range = `${activeFilters.startDateRange.from || ''}/${activeFilters.startDateRange.to || ''}`;
-            if (range !== '/') params.set('startDate', range);
-        }
-        if (activeFilters.dueDateRange?.from || activeFilters.dueDateRange?.to) {
-            const range = `${activeFilters.dueDateRange.from || ''}/${activeFilters.dueDateRange.to || ''}`;
-            if (range !== '/') params.set('dueDate', range);
-        }
-        if (activeFilters.closedAtRange?.from || activeFilters.closedAtRange?.to) {
-            const range = `${activeFilters.closedAtRange.from || ''}/${activeFilters.closedAtRange.to || ''}`;
-            if (range !== '/') params.set('closedAt', range);
-        }
+        filtersToUrlParams(activeFilters).forEach((value, key) => params.set(key, value));
 
-        // Возвращаем строку запроса
-        return params.toString();
-    };
-
-    // Загрузка данных для фильтров из API
-    // Загрузка данных для фильтров из API (один запрос)
-    useEffect(() => {
-        const fetchProjectData = async () => {
-            if (!projectId) return;
-
-            try {
-                const project = await projectService.getProjectDetails(projectId);
-
-                if (project) {
-                    // Участники проекта (извлекаем user из каждого member)
-                    if (project.members && Array.isArray(project.members)) {
-                        setProjectMembers(project.members);
-                    }
-                    // Статусы проекта
-                    if (project.statuses && Array.isArray(project.statuses)) {
-                        setProjectStatuses(project.statuses);
-                    }
-                    // Теги проекта
-                    if (project.tags && Array.isArray(project.tags)) {
-                        setProjectTags(project.tags);
-                    }
-                }
-            } catch (error) {
-                console.error('Error fetching project data:', error);
-            }
-        };
-
-        fetchProjectData();
-    }, [projectId]);
-
-
-    useEffect(() => {
-        const fetchTasks = async () => {
-            if (!projectId) return;
-            setLoading(true);
-            try {
-                const queryString = buildApiParams();
-
-                const response = await projectService.getAllTasks(projectId, queryString);
-
-                if (response && response.tasks) {
-                    setTasks(response.tasks);
-                    setTotalTasks(response.total || response.tasks.length);
-                } else {
-                    setTasks([]);
-                    setTotalTasks(0);
-                }
-            } catch (error) {
+        projectService.getAllTasks(projectId, params.toString())
+            .then(response => {
+                setTasks(response?.tasks || []);
+                setTotalTasks(response?.total || 0);
+            })
+            .catch(() => {
                 setTasks([]);
                 setTotalTasks(0);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchTasks();
+            })
+            .finally(() => setLoading(false));
     }, [projectId, currentPage, selectedSortField, sortOrder, activeFilters]);
 
-    // Обновляем URL при изменении параметров
-    useEffect(() => {
-        const params = new URLSearchParams();
-
-        // Сортировка
-        if (selectedSortField.id !== 'created_at') {
-            params.set('sortField', selectedSortField.id);
-        }
-        if (sortOrder !== 'DESC') {
-            params.set('sortOrder', sortOrder);
-        }
-
-        // Пагинация
-        if (currentPage !== 1) {
-            params.set('page', currentPage);
-        }
-
-        // Фильтры
-        if (activeFilters.statusIds?.length > 0) {
-            params.set('statusIds', activeFilters.statusIds.join(','));
-        }
-        if (activeFilters.priorities?.length > 0) {
-            params.set('priorities', activeFilters.priorities.join(','));
-        }
-        if (activeFilters.assigneeId) {
-            params.set('assigneeId', activeFilters.assigneeId);
-        }
-        if (activeFilters.creatorId) {
-            params.set('creatorId', activeFilters.creatorId);
-        }
-        if (activeFilters.tagIds?.length > 0) {
-            params.set('tagIds', activeFilters.tagIds.join(','));
-        }
-        if (activeFilters.taskType && activeFilters.taskType !== 'all') {
-            params.set('taskType', activeFilters.taskType);
-        }
-        if (activeFilters.search) {
-            params.set('search', activeFilters.search);
-        }
-
-        // Даты
-        if (activeFilters.createdAtRange?.from || activeFilters.createdAtRange?.to) {
-            const range = `${activeFilters.createdAtRange.from || ''}/${activeFilters.createdAtRange.to || ''}`;
-            if (range !== '/') params.set('createdAt', range);
-        }
-        if (activeFilters.startDateRange?.from || activeFilters.startDateRange?.to) {
-            const range = `${activeFilters.startDateRange.from || ''}/${activeFilters.startDateRange.to || ''}`;
-            if (range !== '/') params.set('startDate', range);
-        }
-        if (activeFilters.dueDateRange?.from || activeFilters.dueDateRange?.to) {
-            const range = `${activeFilters.dueDateRange.from || ''}/${activeFilters.dueDateRange.to || ''}`;
-            if (range !== '/') params.set('dueDate', range);
-        }
-        if (activeFilters.closedAtRange?.from || activeFilters.closedAtRange?.to) {
-            const range = `${activeFilters.closedAtRange.from || ''}/${activeFilters.closedAtRange.to || ''}`;
-            if (range !== '/') params.set('closedAt', range);
-        }
-
-        if (params.toString() === '') {
-            setSearchParams({}, { replace: true });
-        } else {
-            setSearchParams(params, { replace: true });
-        }
-    }, [selectedSortField, sortOrder, currentPage, activeFilters, setSearchParams]);
-
     const handleApplyFilters = (filters) => {
-        console.log('Received filters in ListView:', filters);
         setActiveFilters(filters);
         setCurrentPage(1);
     };
@@ -401,7 +338,7 @@ export default function ListView() {
                                     onClick={() => handleTaskClick(task.id)}
                                 >
                                     <div className="task-list-title-col">
-                                        <Link to={`/project/${projectId}/task/${task.id}`} className="task-link">
+                                        <Link to={`/projects/${projectId}/task/${task.id}`} className="task-link">
                                             {task.title}
                                         </Link>
                                     </div>

@@ -1,0 +1,415 @@
+.customUserAvatar {
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+    font-weight: 500;
+    flex-shrink: 0;
+}
+
+.preloader {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+    width: 100%;
+    height: 100%;
+}
+
+.spinner circle {
+    animation: dash 1.5s ease-in-out infinite;
+}
+
+@keyframes spin {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes dash {
+    0% {
+        stroke-dashoffset: 125;
+    }
+    50% {
+        stroke-dashoffset: 62.5;
+    }
+    100% {
+        stroke-dashoffset: 0;
+    }
+}
+
+
+.memberModalBody {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.removeMemberContainer {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(10, 10, 15, 0.5);
+    padding: 12px;
+    border-radius: 16px;
+}
+
+.memberToRemove {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+.memberNickname { font-size: 13px; color: var(--accent-primary); font-weight: 500; }
+
+.roleBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 12px;
+    border-radius: 24px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.ownerBadge { background: rgba(245, 158, 11, 0.1); color: #F59E0B; border-color: rgba(245, 158, 11, 0.3); }
+.adminBadge { background: rgba(59, 130, 246, 0.1); color: #3B82F6; border-color: rgba(59, 130, 246, 0.3); }
+
+.warningText {
+    color: var(--warning) !important;
+    font-size: 13px;
+    margin-bottom: 12px !important;
+}
+
+.dangerText {
+    color: var(--error) !important;
+    font-size: 13px;
+    margin-bottom: 12px !important;
+}
+
+.inviteUserCard {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(10, 10, 15, 0.5);
+    padding: 12px 16px;
+    border-radius: 16px;
+}
+
+.inviteUserInfo {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px
+}
+
+.inviteFieldGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.inviteLabel {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.inviteInput {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+
+.inviteInput:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
+.inviteInput::placeholder {
+    color: var(--text-tertiary);
+}
+
+.inviteSelect {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.permissionOption {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+/* ========== STATUS/LANE DELETE MODALS ========== */
+.memberModalBody {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.memberModalBody p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.memberModalBody strong {
+    color: var(--text-primary);
+}
+
+.removeMemberContainer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+}
+
+.memberToRemove {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.memberToRemove strong {
+    font-size: 15px;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+/* Цветной кружок для статуса */
+.statusColorDot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+/* Тип статуса */
+.statusTypeLabel {
+    display: block;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+    text-transform: capitalize;
+}
+
+/* Бейдж колонки */
+.columnBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    background: rgba(139, 92, 246, 0.1);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 8px;
+    color: var(--accent-primary);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* Превью правила лейна */
+.laneRulePreview {
+    padding: 12px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+}
+
+.laneRulePreview code {
+    font-family: 'Fira Code', monospace;
+    font-size: 13px;
+    color: var(--accent-primary);
+    word-break: break-all;
+}
+
+.laneDescription {
+    display: block;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 4px;
+}
+
+.infoText {
+    font-size: 13px !important;
+    color: var(--text-secondary) !important;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* ========== INVITE MODAL ========== */
+.inviteUserCard {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+}
+
+.inviteUserInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.inviteUserInfo strong {
+    font-size: 15px;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.memberNickname {
+    font-size: 13px;
+    color: var(--accent-primary);
+    font-weight: 500;
+}
+
+.inviteFieldGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.inviteLabel {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.inviteInput {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 0.2s;
+    outline: none;
+}
+
+.inviteInput:focus {
+    border-color: var(--accent-primary);
+}
+
+.inviteInput::placeholder {
+    color: var(--text-tertiary);
+}
+
+.inviteSelect {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.permissionOption {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+/* ========== ROLE BADGES ========== */
+.roleBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 12px;
+    border-radius: 24px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.ownerBadge {
+    background: rgba(245, 158, 11, 0.1) !important;
+    color: #F59E0B !important;
+    border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
+.adminBadge {
+    background: rgba(59, 130, 246, 0.1) !important;
+    color: #3B82F6 !important;
+    border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+.warningBox {
+    display: flex;
+    gap: 12px;
+    padding: 14px;
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    border-radius: 10px;
+}
+
+.warningBoxIcon {
+    color: #F59E0B;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.viewTasksLink {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    color: var(--accent-primary);
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.viewTasksLink:hover {
+    color: var(--accent-secondary);
+    text-decoration: underline;
+}

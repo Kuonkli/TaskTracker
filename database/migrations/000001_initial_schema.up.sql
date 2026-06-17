@@ -57,7 +57,7 @@ CREATE TABLE project_members (
                                  permission_level VARCHAR(20) NOT NULL DEFAULT 'member',
                                  granted_at TIMESTAMP DEFAULT NOW(),
                                  granted_by UUID REFERENCES users(id) ON DELETE SET NULL,
-                                 last_seen_at TIMESTAMP DEFAULT NOW(),
+                                 last_seen_at TIMESTAMP DEFAULT NULL,
                                  UNIQUE(project_id, user_id),
                                  CONSTRAINT valid_permission_level CHECK (permission_level IN ('owner', 'admin', 'member'))
 );
@@ -138,6 +138,7 @@ CREATE TABLE tasks (
                        creator_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                        assignee_id UUID REFERENCES users(id) ON DELETE SET NULL,
                        status_id UUID REFERENCES project_statuses(id),
+                       status_changed_at TIMESTAMP NOT NULL DEFAULT NOW(),
                        priority VARCHAR(100) NOT NULL DEFAULT 'medium',
                        start_date TIMESTAMP DEFAULT NOW(),
                        due_date TIMESTAMP DEFAULT NULL,
@@ -150,6 +151,7 @@ CREATE INDEX idx_tasks_project_id ON tasks(project_id);
 CREATE INDEX idx_tasks_creator_id ON tasks(creator_id);
 CREATE INDEX idx_tasks_assignee_id ON tasks(assignee_id);
 CREATE INDEX idx_tasks_status_id ON tasks(status_id);
+CREATE INDEX idx_tasks_status_changed_at ON tasks(status_changed_at);
 CREATE INDEX idx_tasks_parent_task_id ON tasks(parent_task_id);
 CREATE INDEX idx_tasks_priority ON tasks(priority);
 CREATE INDEX idx_tasks_dates ON tasks(created_at, start_date, due_date, closed_at);

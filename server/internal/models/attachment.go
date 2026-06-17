@@ -12,7 +12,7 @@ type Attachment struct {
 	CommentID  *uuid.UUID `gorm:"type:uuid" json:"comment_id,omitempty"`
 	TaskID     *uuid.UUID `gorm:"type:uuid" json:"task_id,omitempty"`
 	Filename   string     `gorm:"type:varchar(255);not null" json:"filename"`
-	FileURL    string     `gorm:"type:text;not null" json:"file_url"`
+	FileURL    string     `gorm:"type:text;not null" json:"-"`
 	FileSize   *int       `json:"file_size,omitempty"`
 	FileType   *string    `gorm:"type:varchar(100)" json:"file_type,omitempty"`
 	UploadedBy uuid.UUID  `gorm:"type:uuid;not null" json:"uploaded_by"`

@@ -75,40 +75,40 @@
     align-items: center;
     gap: 8px;
     font-weight: 400;
-    padding: 8px !important;
+    padding: 6px 8px !important;
     width: 100%;
-}
-
-.selector-action-item.settings {
-    border-bottom: 1px solid var(--border-color);
-}
-
-.selector-project-item {
-    color: var(--text-secondary);
 }
 
 /* Стили для выпадающего списка */
 .project-selector-dropdown {
-    min-width: 220px !important;
-    background-color: rgba(10, 10, 15, 0.98) !important;
+    min-width: 250px !important;
+    background-color: rgba(25, 25, 37, 0.99) !important;
     border: 1px solid var(--border-color) !important;
     border-radius: 8px !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35) !important;
 }
 
 .selector-project-item {
-    padding: 8px !important;
+    color: var(--text-secondary);
+    padding: 10px !important;
+    font-weight: 500 !important;
     width: 100%;
 }
 
 .project-selector-dropdown .selector-item {
     padding: 0 !important;
+    margin-bottom: 4px !important;
     cursor: pointer;
     transition: background-color 0.2s;
 }
 
+.selector-project-item.selector-item {
+    background-color: var(--accent-primary);
+}
+
 .project-selector-dropdown .selector-item:hover,
 .project-selector-dropdown .selector-item.highlighted {
+    border-radius: 8px;
     background-color: var(--bg-secondary) !important;
 }
 
@@ -116,7 +116,9 @@
     color: var(--text-primary) !important;
     font-weight: 600;
     opacity: 0.9;
-    border-bottom: 1px solid var(--border-color);
+    border: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
+    border-radius: 8px;
 }
 
 .header-search {

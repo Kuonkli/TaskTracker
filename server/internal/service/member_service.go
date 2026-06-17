@@ -10,6 +10,7 @@ import (
 	"task-tracker/internal/models"
 	"task-tracker/internal/uow"
 	"task-tracker/pkg/exceptions"
+	"time"
 )
 
 type MemberService interface {
@@ -163,6 +164,7 @@ func (s *memberService) UpdateMember(ctx context.Context, projectID uuid.UUID, t
 			return nil, exceptions.ErrCannotRemoveOwner
 		}
 		targetMember.PermissionLevel = req.PermissionLevel
+		targetMember.GrantedAt = time.Now()
 	}
 
 	if err = uoWTx.MemberRepo().Update(ctx, targetMember); err != nil {
@@ -174,7 +176,8 @@ func (s *memberService) UpdateMember(ctx context.Context, projectID uuid.UUID, t
 		return nil, err
 	}
 
-	return uoWTx.MemberRepo().FindByID(ctx, targetMember.ID)
+	w := s.uowFactory.New()
+	return w.MemberRepo().FindByID(ctx, targetMember.ID)
 }
 
 func (s *memberService) LeaveProject(ctx context.Context, projectID uuid.UUID, userID uuid.UUID) error {

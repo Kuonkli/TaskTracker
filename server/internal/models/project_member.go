@@ -15,7 +15,7 @@ type ProjectMember struct {
 	PermissionLevel string     `gorm:"type:varchar(20);not null" json:"permission_level"`
 	GrantedAt       time.Time  `gorm:"default:now()" json:"granted_at"`
 	GrantedByID     *uuid.UUID `gorm:"type:uuid;column:granted_by" json:"granted_by_id,omitempty"` // указываем column
-	LastSeenAt      time.Time  `gorm:"default:now()" json:"last_seen_at"`
+	LastSeenAt      *time.Time `gorm:"default:null" json:"last_seen_at"`
 
 	// Relationships
 	Project   *Project `gorm:"foreignKey:ProjectID" json:"project,omitempty"`

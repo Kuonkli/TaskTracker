@@ -15,15 +15,17 @@ type JoinMetadata struct {
 
 // FieldMetadata содержит информацию о поле
 type FieldMetadata struct {
-	SQLExpr      string        // SQL выражение для поля
-	RequiredJoin *JoinMetadata // JOIN, если требуется (nil если не нужен)
+	SQLExpr         string          // SQL выражение для поля
+	RequiredJoins   []*JoinMetadata // JOIN, если требуется (nil если не нужен)
+	RequiresGroupBy bool            // НОВОЕ: требует ли поле GROUP BY
 }
 
 // SQLGenerator преобразует ConditionNode в SQL WHERE clause
 type SQLGenerator struct {
-	fieldMap      map[string]string
-	fieldMetadata map[string]FieldMetadata
-	requiredJoins map[string]string // уникальные JOIN для текущего запроса
+	fieldMap        map[string]string
+	fieldMetadata   map[string]FieldMetadata
+	requiredJoins   map[string]string // уникальные JOIN для текущего запроса
+	requiresGroupBy bool              // НОВОЕ: флаг, нужен ли GROUP BY
 }
 
 // NewSQLGenerator создает новый генератор
@@ -50,101 +52,178 @@ func (g *SQLGenerator) initFields() {
 	// ===== ССЫЛКИ (требуют JOIN) =====
 	g.fieldMetadata["assignee"] = FieldMetadata{
 		SQLExpr: "assignee_user.nickname",
-		RequiredJoin: &JoinMetadata{
-			JoinTable: "users assignee_user",
-			JoinOn:    "assignee_user.id = tasks.assignee_id",
-			JoinType:  "LEFT JOIN",
+		RequiredJoins: []*JoinMetadata{
+			{
+				JoinTable: "users assignee_user",
+				JoinOn:    "assignee_user.id = tasks.assignee_id",
+				JoinType:  "LEFT JOIN",
+			},
 		},
+		RequiresGroupBy: false,
 	}
 
 	g.fieldMetadata["creator"] = FieldMetadata{
 		SQLExpr: "creator_user.nickname",
-		RequiredJoin: &JoinMetadata{
-			JoinTable: "users creator_user",
-			JoinOn:    "creator_user.id = tasks.creator_id",
+		RequiredJoins: []*JoinMetadata{
+			{
+				JoinTable: "users creator_user",
+				JoinOn:    "creator_user.id = tasks.creator_id",
+				JoinType:  "LEFT JOIN",
+			},
+		},
+		RequiresGroupBy: false,
+	}
+
+	// ===== ЧИСЛОВЫЕ МЕТРИКИ =====
+	g.fieldMetadata["subtasks_count"] = FieldMetadata{
+		SQLExpr: "COALESCE(sub.cnt, 0)",
+		RequiredJoins: []*JoinMetadata{
+			{
+				JoinTable: `(
+            SELECT parent_task_id, COUNT(*) as cnt
+            FROM tasks
+            WHERE parent_task_id IS NOT NULL
+            GROUP BY parent_task_id
+        ) sub`,
+				JoinOn:   "sub.parent_task_id = tasks.id",
+				JoinType: "LEFT JOIN",
+			},
+		},
+		RequiresGroupBy: true,
+	}
+
+	g.fieldMetadata["comments_count"] = FieldMetadata{
+		SQLExpr: "COALESCE(com.cnt, 0)",
+		RequiredJoins: []*JoinMetadata{
+			{
+				JoinTable: `(
+            SELECT task_id, COUNT(*) as cnt
+            FROM comments
+            GROUP BY task_id
+        ) com`,
+				JoinOn:   "com.task_id = tasks.id",
+				JoinType: "LEFT JOIN",
+			},
+		},
+		RequiresGroupBy: true,
+	}
+
+	g.fieldMetadata["attachments_count"] = FieldMetadata{
+		SQLExpr: "COALESCE(att.cnt, 0)",
+		RequiredJoins: []*JoinMetadata{
+			{
+				JoinTable: `(
+            SELECT task_id, COUNT(*) as cnt
+            FROM attachments
+            GROUP BY task_id
+        ) att`,
+				JoinOn:   "att.task_id = tasks.id",
+				JoinType: "LEFT JOIN",
+			},
+		},
+		RequiresGroupBy: true,
+	}
+
+	g.fieldMap["subtasks_closed"] = "(SELECT COUNT(*) FROM tasks subtasks WHERE subtasks.parent_task_id = tasks.id AND subtasks.closed_at IS NOT NULL)"
+
+	// Возраст и время
+	g.fieldMap["age_days"] = "EXTRACT(DAY FROM NOW() - tasks.created_at)"
+
+	statusJoins := []*JoinMetadata{
+		{
+			JoinTable: `(
+            SELECT 
+                task_id,
+                SUM(time_duration) FILTER (WHERE (old_value->>'status_type') = 'todo') as todo_seconds,
+                SUM(time_duration) FILTER (WHERE (old_value->>'status_type') = 'progress') as progress_seconds,
+                SUM(time_duration) FILTER (WHERE (old_value->>'status_type') = 'paused') as paused_seconds
+            FROM changes
+            WHERE field_name = 'status'
+            GROUP BY task_id
+        ) stat`,
+			JoinOn:   "stat.task_id = tasks.id",
+			JoinType: "LEFT JOIN",
+		},
+		{
+			JoinTable: "project_statuses ps",
+			JoinOn:    "ps.id = tasks.status_id",
 			JoinType:  "LEFT JOIN",
 		},
 	}
 
-	// ===== ЧИСЛОВЫЕ МЕТРИКИ =====
-	g.fieldMap["subtasks_count"] = "(SELECT COUNT(*) FROM tasks subtasks WHERE subtasks.parent_task_id = tasks.id)"
-	g.fieldMap["subtasks_closed"] = "(SELECT COUNT(*) FROM tasks subtasks WHERE subtasks.parent_task_id = tasks.id AND subtasks.closed_at IS NOT NULL)"
-	g.fieldMap["comments_count"] = "(SELECT COUNT(*) FROM comments WHERE comments.task_id = tasks.id)"
-	g.fieldMap["attachments_count"] = "(SELECT COUNT(*) FROM attachments WHERE attachments.task_id = tasks.id)"
+	g.fieldMetadata["todo_days"] = FieldMetadata{
+		SQLExpr: `
+        COALESCE(stat.todo_seconds, 0) / 86400.0 +
+        CASE WHEN ps.status_type = 'todo' 
+             THEN EXTRACT(EPOCH FROM (NOW() - tasks.status_changed_at)) / 86400.0
+             ELSE 0 
+        END
+    `,
+		RequiredJoins:   statusJoins,
+		RequiresGroupBy: true,
+	}
 
-	// Возраст и время
-	g.fieldMap["age_days"] = "EXTRACT(DAY FROM NOW() - tasks.created_at)"
-	g.fieldMap["todo_days"] = `(
-    SELECT COALESCE(SUM(time_duration), 0) / 86400.0 + 
-    CASE 
-        WHEN (SELECT ps.status_type FROM project_statuses ps WHERE ps.id = tasks.status_id) = 'todo' 
-        THEN EXTRACT(EPOCH FROM (NOW() - COALESCE((
-            SELECT created_at FROM changes 
-            WHERE changes.task_id = tasks.id 
-            AND changes.field_name = 'status'
-            AND changes.new_value->>'status_type' = 'todo'
-            ORDER BY created_at DESC LIMIT 1
-        ), tasks.created_at))) / 86400.0
-        ELSE 0
-    END
-    FROM changes 
-    WHERE changes.task_id = tasks.id 
-    AND changes.field_name = 'status'
-    AND changes.old_value->>'status_type' = 'todo'
-)`
+	g.fieldMetadata["progress_days"] = FieldMetadata{
+		SQLExpr: `
+        COALESCE(stat.progress_seconds, 0) / 86400.0 +
+        CASE WHEN ps.status_type = 'progress' 
+             THEN EXTRACT(EPOCH FROM (NOW() - tasks.status_changed_at)) / 86400.0
+             ELSE 0 
+        END
+    `,
+		RequiredJoins:   statusJoins,
+		RequiresGroupBy: true,
+	}
 
-	g.fieldMap["progress_days"] = `(
-    SELECT COALESCE(SUM(time_duration), 0) / 86400.0 + 
-    CASE 
-        WHEN (SELECT ps.status_type FROM project_statuses ps WHERE ps.id = tasks.status_id) = 'progress' 
-        THEN EXTRACT(EPOCH FROM (NOW() - COALESCE((
-            SELECT created_at FROM changes 
-            WHERE changes.task_id = tasks.id 
-            AND changes.field_name = 'status'
-            AND changes.new_value->>'status_type' = 'progress'
-            ORDER BY created_at DESC LIMIT 1
-        ), tasks.created_at))) / 86400.0
-        ELSE 0
-    END
-    FROM changes 
-    WHERE changes.task_id = tasks.id 
-    AND changes.field_name = 'status'
-    AND changes.old_value->>'status_type' = 'progress'
-)`
+	g.fieldMetadata["pause_days"] = FieldMetadata{
+		SQLExpr: `
+        COALESCE(stat.paused_seconds, 0) / 86400.0 +
+        CASE WHEN ps.status_type = 'pause' 
+             THEN EXTRACT(EPOCH FROM (NOW() - tasks.status_changed_at)) / 86400.0
+             ELSE 0 
+        END
+    `,
+		RequiredJoins:   statusJoins,
+		RequiresGroupBy: true,
+	}
 
-	g.fieldMap["pause_days"] = `(
-    SELECT COALESCE(SUM(time_duration), 0) / 86400.0 + 
-    CASE 
-        WHEN (SELECT ps.status_type FROM project_statuses ps WHERE ps.id = tasks.status_id) = 'paused' 
-        THEN EXTRACT(EPOCH FROM (NOW() - COALESCE((
-            SELECT created_at FROM changes 
-            WHERE changes.task_id = tasks.id 
-            AND changes.field_name = 'status'
-            AND changes.new_value->>'status_type' = 'paused'
-            ORDER BY created_at DESC LIMIT 1
-        ), tasks.created_at))) / 86400.0
-        ELSE 0
-    END
-    FROM changes 
-    WHERE changes.task_id = tasks.id 
-    AND changes.old_value->>'status_type' = 'paused'
-)`
-	g.fieldMap["close_days"] = "EXTRACT(DAY FROM NOW() - tasks.closed_at)"
-	g.fieldMap["complete_days"] = `(
-    SELECT EXTRACT(DAY FROM NOW() - tasks.closed_at)
-    WHERE EXISTS (
-        SELECT 1 FROM project_statuses ps 
-        WHERE ps.id = tasks.status_id AND ps.status_type = 'completed'
-    )
-)`
+	g.fieldMap["close_days"] = "COALESCE(EXTRACT(DAY FROM NOW() - tasks.closed_at), 0)"
+	// ===== ДНИ ДЛЯ ЗАКРЫТЫХ ЗАДАЧ =====
+	g.fieldMetadata["complete_days"] = FieldMetadata{
+		SQLExpr: `
+        CASE 
+            WHEN tasks.closed_at IS NOT NULL AND ps.status_type = 'completed'
+            THEN EXTRACT(DAY FROM NOW() - tasks.closed_at)
+            ELSE NULL
+        END
+    `,
+		RequiredJoins: []*JoinMetadata{
+			{
+				JoinTable: "project_statuses ps",
+				JoinOn:    "ps.id = tasks.status_id",
+				JoinType:  "LEFT JOIN",
+			},
+		},
+		RequiresGroupBy: false,
+	}
 
-	g.fieldMap["cancel_days"] = `(
-    SELECT EXTRACT(DAY FROM NOW() - tasks.closed_at)
-    WHERE EXISTS (
-        SELECT 1 FROM project_statuses ps 
-        WHERE ps.id = tasks.status_id AND ps.status_type = 'cancelled'
-    )
-)`
+	g.fieldMetadata["cancel_days"] = FieldMetadata{
+		SQLExpr: `
+        CASE 
+            WHEN tasks.closed_at IS NOT NULL AND ps.status_type = 'cancelled'
+            THEN EXTRACT(DAY FROM NOW() - tasks.closed_at)
+            ELSE NULL
+        END
+    `,
+		RequiredJoins: []*JoinMetadata{
+			{
+				JoinTable: "project_statuses ps",
+				JoinOn:    "ps.id = tasks.status_id",
+				JoinType:  "LEFT JOIN",
+			},
+		},
+		RequiresGroupBy: false,
+	}
 
 	// Относительно дат
 	g.fieldMap["days_from_start"] = "EXTRACT(DAY FROM NOW() - tasks.start_date)"
@@ -154,32 +233,65 @@ func (g *SQLGenerator) initFields() {
 
 	// ===== БУЛЕВЫ ПОЛЯ =====
 	g.fieldMap["is_closed"] = "tasks.closed_at IS NOT NULL"
-	g.fieldMap["is_completed"] = `EXISTS (
-    SELECT 1 FROM project_statuses ps 
-    WHERE ps.id = tasks.status_id AND ps.status_type = 'completed'
-)`
-	g.fieldMap["is_cancelled"] = `EXISTS (
-    SELECT 1 FROM project_statuses ps 
-    WHERE ps.id = tasks.status_id AND ps.status_type = 'cancelled'
-)`
+	g.fieldMetadata["is_completed"] = FieldMetadata{
+		SQLExpr: "ps_completed.status_type IS NOT NULL",
+		RequiredJoins: []*JoinMetadata{
+			{
+				JoinTable: "project_statuses ps_completed",
+				JoinOn:    "ps_completed.id = tasks.status_id AND ps_completed.status_type = 'completed'",
+				JoinType:  "LEFT JOIN",
+			},
+		},
+		RequiresGroupBy: false,
+	}
+
+	g.fieldMetadata["is_cancelled"] = FieldMetadata{
+		SQLExpr: "ps_cancelled.status_type IS NOT NULL",
+		RequiredJoins: []*JoinMetadata{
+			{
+				JoinTable: "project_statuses ps_cancelled",
+				JoinOn:    "ps_cancelled.id = tasks.status_id AND ps_cancelled.status_type = 'cancelled'",
+				JoinType:  "LEFT JOIN",
+			},
+		},
+		RequiresGroupBy: false,
+	}
 	g.fieldMap["has_due_date"] = "tasks.due_date IS NOT NULL"
 	g.fieldMap["has_assignee"] = "tasks.assignee_id IS NOT NULL"
 	g.fieldMap["is_overdue"] = "(tasks.due_date < NOW() AND tasks.closed_at IS NULL)"
 	g.fieldMap["is_subtask"] = "tasks.parent_task_id IS NOT NULL"
 
 	// ===== МАССИВЫ =====
-	g.fieldMap["tags"] = "ARRAY(SELECT tags.title FROM task_tags JOIN tags ON tags.id = task_tags.tag_id WHERE task_tags.task_id = tasks.id)"
+	g.fieldMetadata["tags"] = FieldMetadata{
+		SQLExpr: "COALESCE(tag.tags_array, '{}')",
+		RequiredJoins: []*JoinMetadata{
+			{
+				JoinTable: `(
+            SELECT 
+                task_tags.task_id,
+                ARRAY_AGG(tags.title::text) as tags_array
+            FROM task_tags
+            JOIN tags ON tags.id = task_tags.tag_id
+            GROUP BY task_tags.task_id
+        ) tag`,
+				JoinOn:   "tag.task_id = tasks.id",
+				JoinType: "LEFT JOIN",
+			},
+		},
+		RequiresGroupBy: true,
+	}
 }
 
 // Generate преобразует JSON-правило в SQL условие и возвращает список необходимых JOIN
-func (g *SQLGenerator) Generate(ruleJSON string) (string, []string, error) {
+func (g *SQLGenerator) Generate(ruleJSON string) (string, []string, bool, error) {
 	var node ConditionNode
 	if err := json.Unmarshal([]byte(ruleJSON), &node); err != nil {
-		return "", nil, fmt.Errorf("invalid JSON: %w", err)
+		return "", nil, false, fmt.Errorf("invalid JSON: %w", err)
 	}
 
 	// Сбрасываем JOIN при каждом новом запросе
 	g.requiredJoins = make(map[string]string)
+	g.requiresGroupBy = false
 
 	// Собираем все поля из условия для определения необходимых JOIN
 	g.collectFields(&node)
@@ -187,7 +299,7 @@ func (g *SQLGenerator) Generate(ruleJSON string) (string, []string, error) {
 	// Генерируем SQL условия
 	conditionSQL, err := g.generateNode(&node)
 	if err != nil {
-		return "", nil, err
+		return "", nil, false, err
 	}
 
 	// Формируем список уникальных JOIN
@@ -196,7 +308,7 @@ func (g *SQLGenerator) Generate(ruleJSON string) (string, []string, error) {
 		joins = append(joins, joinSQL)
 	}
 
-	return conditionSQL, joins, nil
+	return conditionSQL, joins, g.requiresGroupBy, nil
 }
 
 // collectFields рекурсивно собирает все поля из AST
@@ -205,19 +317,23 @@ func (g *SQLGenerator) collectFields(node *ConditionNode) {
 		return
 	}
 
-	// Если это лист с полем
 	if node.Field != "" {
-		// Проверяем, есть ли метаданные с JOIN для этого поля
-		if meta, ok := g.fieldMetadata[node.Field]; ok && meta.RequiredJoin != nil {
-			joinKey := fmt.Sprintf("%s %s ON %s",
-				meta.RequiredJoin.JoinType,
-				meta.RequiredJoin.JoinTable,
-				meta.RequiredJoin.JoinOn)
-			g.requiredJoins[joinKey] = joinKey
+		if meta, ok := g.fieldMetadata[node.Field]; ok {
+			// Добавляем все JOINs из списка
+			for _, join := range meta.RequiredJoins {
+				joinKey := fmt.Sprintf("%s %s ON %s",
+					join.JoinType,
+					join.JoinTable,
+					join.JoinOn)
+				g.requiredJoins[joinKey] = joinKey
+			}
+
+			if meta.RequiresGroupBy {
+				g.requiresGroupBy = true
+			}
 		}
 	}
 
-	// Рекурсивно обрабатываем дочерние узлы
 	g.collectFields(node.Condition1)
 	g.collectFields(node.Condition2)
 }
@@ -256,6 +372,10 @@ func (g *SQLGenerator) generateNode(node *ConditionNode) (string, error) {
 		}
 
 		result := fmt.Sprintf("(%s %s %s)", sql1, strings.ToUpper(node.Logic), sql2)
+		if node.IsBraced {
+			result = "(" + result + ")"
+		}
+
 		if node.IsNot {
 			return "NOT " + result, nil
 		}
@@ -279,16 +399,13 @@ func (g *SQLGenerator) generateLeaf(node *ConditionNode) (string, error) {
 	// Получаем SQL для поля
 	var sqlField string
 
-	// Сначала проверяем в fieldMetadata (поля с JOIN)
+	// Поиск в fieldMetadata
 	if meta, ok := g.fieldMetadata[node.Field]; ok {
 		sqlField = meta.SQLExpr
+	} else if val, ok := g.fieldMap[node.Field]; ok {
+		sqlField = val
 	} else {
-		// Иначе в fieldMap
-		var ok bool
-		sqlField, ok = g.fieldMap[node.Field]
-		if !ok {
-			return "", fmt.Errorf("unknown field: %s", node.Field)
-		}
+		return "", fmt.Errorf("unknown field: %s", node.Field)
 	}
 
 	// Значение
@@ -314,6 +431,16 @@ func (g *SQLGenerator) generateLeaf(node *ConditionNode) (string, error) {
 			if node.Operator == "!=" {
 				return fmt.Sprintf("%s IS NOT NULL", sqlField), nil
 			}
+		}
+
+		if _, ok := value.(bool); ok || value == "true" || value == "false" {
+			numVal := "0"
+			if v, ok := value.(bool); ok && v {
+				numVal = "1"
+			} else if value == "true" || value == "1" {
+				numVal = "1"
+			}
+			return fmt.Sprintf("%s %s %s", sqlField, node.Operator, numVal), nil
 		}
 
 		// Для обычных полей
@@ -465,30 +592,4 @@ func (g *SQLGenerator) formatLike(v interface{}) string {
 	str = strings.ReplaceAll(str, "%", "\\%")
 	str = strings.ReplaceAll(str, "_", "\\_")
 	return fmt.Sprintf("%%%s%%", str)
-}
-
-// BuildQuery строит полный SQL запрос с JOIN
-func (g *SQLGenerator) BuildQuery(projectID string, ruleJSON string) (string, []interface{}, error) {
-	conditionSQL, joins, err := g.Generate(ruleJSON)
-	if err != nil {
-		return "", nil, err
-	}
-
-	// Собираем JOIN в строку
-	joinClause := ""
-	if len(joins) > 0 {
-		joinClause = strings.Join(joins, "\n")
-	}
-
-	// Формируем полный запрос
-	query := fmt.Sprintf(`
-		SELECT tasks.* 
-		FROM tasks
-		%s
-		WHERE tasks.project_id = $1 
-		AND %s
-		ORDER BY tasks.created_at
-	`, joinClause, conditionSQL)
-
-	return query, []interface{}{projectID}, nil
 }

@@ -17,6 +17,8 @@ type UserHandler interface {
 	Login(*gin.Context)
 	UpdateProfile(*gin.Context)
 	GetProfile(*gin.Context)
+	SearchUser(*gin.Context)
+	Logout(c *gin.Context)
 }
 
 type userHandler struct {
@@ -137,5 +139,40 @@ func (h *userHandler) UpdateProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"user":    user,
 		"message": "Profile updated successfully",
+	})
+}
+
+func (h *userHandler) Logout(c *gin.Context) {
+	ctx := mwcontext.GetValidationContext(c)
+	if ctx.UserID == uuid.Nil {
+		c.JSON(exceptions.NewApiError(exceptions.Unauthorized("user id required")))
+	}
+	c.SetCookie("access_token", "", -1, "/", "", false, true)
+	c.SetCookie("refresh_token", "", -1, "/", "", false, true)
+	c.JSON(http.StatusOK, gin.H{"message": "logout successful"})
+}
+
+func (h *userHandler) SearchUser(c *gin.Context) {
+	ctx := mwcontext.GetValidationContext(c)
+	if ctx.UserID == uuid.Nil {
+		c.JSON(exceptions.NewApiError(exceptions.Unauthorized("user id required")))
+	}
+	query := c.DefaultQuery("search", "")
+	users, err := h.service.SearchUser(c.Request.Context(), query)
+	if err != nil {
+		c.JSON(exceptions.NewApiError(err))
+		return
+	}
+	usersResp := make([]dto.UserResponse, len(users))
+	for i, user := range users {
+		usersResp[i].ID = user.ID
+		usersResp[i].Nickname = user.Nickname
+		usersResp[i].FirstName = user.FirstName
+		usersResp[i].LastName = user.LastName
+		usersResp[i].Color = user.Color
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"users": usersResp,
 	})
 }

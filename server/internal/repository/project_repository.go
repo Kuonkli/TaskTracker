@@ -203,8 +203,9 @@ func (r *projectRepo) GetProjectWithDetails(ctx context.Context, id uuid.UUID) (
 		Preload("Statuses").
 		Preload("Columns").
 		Preload("Columns.Status").
-		Preload("Lanes").
-		Preload("Tags").
+		Preload("Lanes", func(db *gorm.DB) *gorm.DB {
+			return db.Order("position")
+		}).Preload("Tags").
 		First(&project, "id = ?", id).Error
 	return &project, err
 }

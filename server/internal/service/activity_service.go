@@ -9,6 +9,7 @@ import (
 )
 
 type ActivityService interface {
+	GetProjectActivities(ctx context.Context, projectID uuid.UUID, limit, offset int) (*[]dto.ActivityItem, int64, error)
 	GetTaskActivities(ctx context.Context, projectID, taskID uuid.UUID, limit, offset int) (*[]dto.ActivityItem, int64, error)
 	GetUserActivities(ctx context.Context, projectID, userID uuid.UUID, limit, offset int) (*[]dto.ActivityItem, int64, error)
 	AddComment(ctx context.Context, taskID, userID uuid.UUID, content string) (*models.Comment, error)
@@ -26,6 +27,15 @@ type activityService struct {
 
 func NewActivityService(uowFactory uow.ActivityUoWFactory) ActivityService {
 	return &activityService{uowFactory: uowFactory}
+}
+
+func (s *activityService) GetProjectActivities(ctx context.Context, projectID uuid.UUID, limit, offset int) (*[]dto.ActivityItem, int64, error) {
+	w := s.uowFactory.New()
+	activities, total, err := w.ActivityRepo().GetProjectActivities(ctx, projectID, limit, offset)
+	if err != nil {
+		return nil, total, err
+	}
+	return &activities, total, nil
 }
 
 func (s *activityService) GetTaskActivities(ctx context.Context, projectID, taskID uuid.UUID, limit, offset int) (*[]dto.ActivityItem, int64, error) {
@@ -72,7 +82,8 @@ func (s *activityService) AddComment(ctx context.Context, taskID, userID uuid.UU
 		return nil, err
 	}
 
-	return uoWTx.CommentRepo().FindByID(ctx, comment.ID)
+	w := s.uowFactory.New()
+	return w.CommentRepo().FindByID(ctx, comment.ID)
 }
 
 func (s *activityService) UpdateComment(ctx context.Context, commentID uuid.UUID, content string) (*models.Comment, error) {

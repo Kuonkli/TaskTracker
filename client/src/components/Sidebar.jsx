@@ -7,10 +7,17 @@ export default function Sidebar({ user, teamMembers }) {
     const { projectId } = useParams(); // Получаем projectId из URL
 
     const navigation = [
-        { id: 'board', path: `/project/${projectId}/board`, label: 'Board', icon: LayoutGrid },
-        { id: 'list', path: `/project/${projectId}/list`, label: 'List', icon: List },
-        { id: 'summary', path: `/project/${projectId}/summary`, label: 'Summary', icon: ChartPie },
+        { id: 'board', path: `/projects/${projectId}/board`, label: 'Board', icon: LayoutGrid },
+        { id: 'list', path: `/projects/${projectId}/list`, label: 'List', icon: List },
+        { id: 'summary', path: `/projects/${projectId}/summary`, label: 'Summary', icon: ChartPie },
     ];
+
+    const members = [...teamMembers].sort((a, b) => {
+        const priority = { 'owner': 1, 'admin': 2, 'member': 3 };
+        const priorityA = priority[a.permission_level] || 3;
+        const priorityB = priority[b.permission_level] || 3;
+        return priorityA - priorityB;
+    });
 
     return (
         <aside className="sidebar">
@@ -38,10 +45,10 @@ export default function Sidebar({ user, teamMembers }) {
                     <h3>Team Members</h3>
                 </div>
                 <div className="team-list">
-                    {teamMembers.map((member) => (
+                    {members.map((member) => (
                         <NavLink
                             key={member.id}
-                            to={user.id === member.user.id ? `/project/${projectId}/profile` : `/project/${projectId}/member/${member.user.id}`}
+                            to={user.id === member.user.id ? `/projects/${projectId}/profile` : `/projects/${projectId}/member/${member.user.id}`}
                             className="team-member"
                         >
                             <CustomUserAvatar

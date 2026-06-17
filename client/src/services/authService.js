@@ -33,11 +33,10 @@ export const authService = {
 
     async logout() {
         try {
-            await apiClient.post(API_ENDPOINTS.auth.logout);
+            const response = await apiClient.post(API_ENDPOINTS.auth.logout);
+            return response.data;
         } catch (error) {
             console.error('Logout error:', error);
-        } finally {
-            localStorage.removeItem('user');
         }
     },
 

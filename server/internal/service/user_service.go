@@ -18,6 +18,7 @@ type UserService interface {
 	Login(ctx context.Context, email, password string) (*models.User, error)
 	GetProfile(ctx context.Context, id uuid.UUID) (*models.User, error)
 	UpdateProfile(ctx context.Context, id uuid.UUID, req dto.UpdateProfileRequest) error
+	SearchUser(ctx context.Context, query string) ([]models.User, error)
 }
 
 type userService struct {
@@ -217,4 +218,12 @@ func (s *userService) UpdateProfile(ctx context.Context, id uuid.UUID, req dto.U
 	}
 
 	return nil
+}
+
+func (s *userService) SearchUser(ctx context.Context, query string) ([]models.User, error) {
+	w := s.uowFactory.New()
+	filter := dto.UserFilter{
+		Search: query,
+	}
+	return w.UserRepo().List(ctx, filter, 50, 0)
 }

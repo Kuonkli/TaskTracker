@@ -2,17 +2,19 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, LogIn } from 'lucide-react';
 import { authService } from '../services/authService';
+import { useToast } from '../contexts/ToastContext';
 import '../styles/AuthPages.css';
 
 export default function LoginPage({ onLogin }) {
     const navigate = useNavigate();
+    const { showToast, handleApiError } = useToast();
+
     const [formData, setFormData] = useState({
         email: '',
         password: ''
     });
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState('');
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -20,19 +22,25 @@ export default function LoginPage({ onLogin }) {
             ...prev,
             [name]: value
         }));
-        setError('');
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (!formData.email.trim() || !formData.password) {
+            showToast('Please fill in all fields', 'warning');
+            return;
+        }
+
         setIsLoading(true);
-        setError('');
 
         try {
             const user = await authService.login(formData.email, formData.password);
-            onLogin(user);
+            await onLogin(user);
+            showToast(`Welcome back, ${user.first_name}!`, 'success');
         } catch (err) {
-            setError(err.message);
+            handleApiError(err);
+        } finally {
             setIsLoading(false);
         }
     };
@@ -48,12 +56,6 @@ export default function LoginPage({ onLogin }) {
                     </div>
 
                     <form onSubmit={handleSubmit} className="auth-form">
-                        {error && (
-                            <div className="auth-error">
-                                <span>{error}</span>
-                            </div>
-                        )}
-
                         <div className="form-group">
                             <label htmlFor="email">
                                 <Mail size={16} />

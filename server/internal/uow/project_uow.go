@@ -14,6 +14,7 @@ type ProjectUoW interface {
 	TagRepo() repository.TagRepository
 	BoardRepo() repository.BoardRepository
 	UserRepo() repository.UserRepository
+	SummaryRepo() repository.SummaryRepository
 }
 
 // ProjectUoWTx - с транзакцией
@@ -31,6 +32,7 @@ type projectUoWImpl struct {
 	tagRepo     repository.TagRepository
 	boardRepo   repository.BoardRepository
 	userRepo    repository.UserRepository
+	summaryRepo repository.SummaryRepository
 }
 
 func (u *projectUoWImpl) ProjectRepo() repository.ProjectRepository      { return u.projectRepo }
@@ -39,6 +41,7 @@ func (u *projectUoWImpl) StatusRepo() repository.ProjectStatusRepository { retur
 func (u *projectUoWImpl) TagRepo() repository.TagRepository              { return u.tagRepo }
 func (u *projectUoWImpl) BoardRepo() repository.BoardRepository          { return u.boardRepo }
 func (u *projectUoWImpl) UserRepo() repository.UserRepository            { return u.userRepo }
+func (u *projectUoWImpl) SummaryRepo() repository.SummaryRepository      { return u.summaryRepo }
 
 func (u *projectUoWImpl) Commit(ctx context.Context) error {
 	return u.db.WithContext(ctx).Commit().Error
@@ -71,6 +74,7 @@ func (f *projectUoWFactory) New() ProjectUoW {
 		tagRepo:     repository.NewTagRepository(f.db),
 		boardRepo:   repository.NewBoardRepository(f.db),
 		userRepo:    repository.NewUserRepository(f.db),
+		summaryRepo: repository.NewSummaryRepository(f.db),
 	}
 }
 
@@ -88,5 +92,6 @@ func (f *projectUoWFactory) NewTransaction(ctx context.Context) (ProjectUoWTx, e
 		tagRepo:     repository.NewTagRepository(tx),
 		boardRepo:   repository.NewBoardRepository(tx),
 		userRepo:    repository.NewUserRepository(tx),
+		summaryRepo: repository.NewSummaryRepository(tx),
 	}, nil
 }

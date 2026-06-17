@@ -15,10 +15,10 @@ import {
     RotateCcw,
     Check
 } from 'lucide-react';
-import CustomSelector from './CustomSelector';
-import { CustomUserAvatar } from './CommonComponents';
-import '../styles/FilterModal.css';
-import CustomInputSelector from "./CustomInputSelector";
+import CustomSelector from '../CustomSelector';
+import { CustomUserAvatar } from '../CommonComponents';
+import '../../styles/FilterModal.css';
+import CustomInputSelector from "../CustomInputSelector";
 
 const PRIORITY_OPTIONS = [
     { id: 'low', label: 'Low', color: 'var(--text-tertiary)' },

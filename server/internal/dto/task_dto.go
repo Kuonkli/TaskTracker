@@ -26,7 +26,7 @@ type UpdateTaskRequest struct {
 	StatusID    *uuid.UUID `json:"status_id,omitempty"`
 	Priority    *string    `json:"priority,omitempty" binding:"omitempty,oneof=low medium high critical"`
 	StartDate   *time.Time `json:"start_date,omitempty"`
-	DueDate     *time.Time `json:"due_date,omitempty" binding:"omitempty,gtfield=StartDate"`
+	DueDate     *time.Time `json:"due_date,omitempty" binding:"omitempty"`
 }
 
 // QueryFilter - структура для парсинга query параметров из URL
@@ -69,6 +69,8 @@ type TaskFilter struct {
 	AssigneeID   *uuid.UUID
 	IsUnassigned bool
 	IsAssigned   bool
+	IsClosed     bool
+	IsOpened     bool
 	StatusID     *uuid.UUID
 	Priority     string
 	Search       string
@@ -232,9 +234,18 @@ func (qf *QueryFilter) Parse() (*TaskFilter, error) {
 		return nil, err
 	}
 
-	tf.ClosedAtFrom, tf.ClosedAtTo, err = parseDateRange(qf.ClosedAtRange)
-	if err != nil {
-		return nil, err
+	switch qf.ClosedAtRange {
+	case "null":
+		tf.IsClosed = false
+		tf.IsOpened = true
+	case "notnull":
+		tf.IsClosed = true
+		tf.IsOpened = false
+	default:
+		tf.ClosedAtFrom, tf.ClosedAtTo, err = parseDateRange(qf.ClosedAtRange)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return tf, nil

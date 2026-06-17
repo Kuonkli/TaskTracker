@@ -402,6 +402,17 @@
     font-size: 11px;
 }
 
+.meta-item.priority {
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-weight: 400;
+}
+
+.meta-item.priority svg {
+    margin-right: 2px;
+}
+
 .meta-item.overdue {
+    opacity: 0.9;
     color: var(--error);
 }

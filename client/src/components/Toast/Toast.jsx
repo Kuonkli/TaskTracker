@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AlertCircle, CheckCircle, X, Info, AlertTriangle } from 'lucide-react';
+import {AlertCircle, CheckCircle, X, Info, AlertTriangle, Check} from 'lucide-react';
 import '../../styles/Toast.css';
 
 const Toast = ({ message, type = 'error', duration = 5000, onClose }) => {
@@ -17,7 +17,7 @@ const Toast = ({ message, type = 'error', duration = 5000, onClose }) => {
     const getIcon = () => {
         switch (type) {
             case 'success':
-                return <CheckCircle size={20} />;
+                return <Check size={20} />;
             case 'warning':
                 return <AlertTriangle size={20} />;
             case 'info':

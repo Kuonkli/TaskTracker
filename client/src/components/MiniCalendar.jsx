@@ -285,7 +285,7 @@ export default function MiniCalendar({ tasks, selectedTask, setSelectedTask, sel
                                         {starts.map(task => (
                                             <div key={task.id} className="event-item">
                                                 <Calendar size={16} className={`event-bullet ${isOverdue(task) ? 'overdue' : ''}`}/>
-                                                <span className="event-title" onClick={() => navigate(`/project/${task.project_id}/task/${task.id}`)}>{task.title}</span>
+                                                <span className="event-title" onClick={() => navigate(`/projects/${task.project_id}/task/${task.id}`)}>{task.title}</span>
                                                 {isOverdue(task) && (
                                                     <span className="event-priority overdue">Overdue</span>
                                                 )}
@@ -300,7 +300,7 @@ export default function MiniCalendar({ tasks, selectedTask, setSelectedTask, sel
                                         {dues.map(task => (
                                             <div key={task.id} className="event-item">
                                                 <Flag size={16} className={`event-bullet ${isOverdue(task) ? 'overdue' : ''}`}/>
-                                                <span className="event-title" onClick={() => navigate(`/project/${task.project_id}/task/${task.id}`)}>{task.title}</span>
+                                                <span className="event-title" onClick={() => navigate(`/projects/${task.project_id}/task/${task.id}`)}>{task.title}</span>
                                                 {isOverdue(task) && (
                                                     <span className="event-priority overdue">Overdue</span>
                                                 )}
