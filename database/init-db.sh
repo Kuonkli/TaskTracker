@@ -5,6 +5,10 @@ echo "PostgreSQL is ready. Executing init script..."
 export PGPASSWORD=${POSTGRES_PASSWORD}
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<EOF
+CREATE DATABASE :POSTGRES_DB;
+
+\c :POSTGRES_DB
+
 DO \$\$
 DECLARE
     admin_password text := '${ADMIN_PASSWORD}';
