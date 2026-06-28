@@ -107,10 +107,6 @@ export default function Header({ project, user, onActivityToggle, projects = [] 
                 <button className="icon-button" onClick={onActivityToggle}>
                     <Zap size={20} />
                 </button>
-                <button className="icon-button">
-                    <Bell size={20} />
-                    <span className="notification-badge"></span>
-                </button>
                 <Link to={`/projects/${projectId}/profile`} className="user-profile-avatar">
                     <CustomUserAvatar user={user} color={user?.color} size={'100%'} fontSize={'14px'} />
                 </Link>
