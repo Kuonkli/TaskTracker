@@ -2,76 +2,78 @@ package utils
 
 import (
 	"errors"
+	"fmt"
+	"github.com/google/uuid"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
+type TokenType string
+
+const (
+	TokenTypeAccess  TokenType = "access"
+	TokenTypeRefresh TokenType = "refresh"
+)
+
+const Issuer = "task-tracker"
+
 type Claims struct {
-	UserID string `json:"user_id"`
+	UserID       uuid.UUID `json:"sub"`
+	TokenType    TokenType `json:"typ"`
+	TokenVersion int64     `json:"ver"`
 	jwt.RegisteredClaims
 }
 
-func GenerateAccess(userID string, jwtSecret string) (string, error) {
-	accessTokenExpirationTime := jwt.NewNumericDate(time.Now().Add(15 * time.Minute))
-	accessClaims := &Claims{
-		UserID: userID,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: accessTokenExpirationTime,
-		},
-	}
-
-	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
-	accessTokenString, err := accessToken.SignedString([]byte(jwtSecret))
-	if err != nil {
-		return "", err
-	}
-	return accessTokenString, nil
+func GenerateAccess(userID uuid.UUID, version int64, secret []byte) (string, error) {
+	return generate(userID, version, TokenTypeAccess, 15*time.Minute, secret)
 }
 
-func GenerateRefresh(userID string, jwtSecret string) (string, error) {
-	refreshTokenExpirationTime := jwt.NewNumericDate(time.Now().Add(72 * time.Hour))
-	refreshClaims := &Claims{
-		UserID: userID,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: refreshTokenExpirationTime,
-		},
-	}
-
-	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
-	refreshTokenString, err := refreshToken.SignedString([]byte(jwtSecret))
-	if err != nil {
-		return "", err
-	}
-	return refreshTokenString, nil
+func GenerateRefresh(userID uuid.UUID, version int64, secret []byte) (string, error) {
+	return generate(userID, version, TokenTypeRefresh, 72*time.Hour, secret)
 }
 
-func ParseToken(tokenString, jwtSecret string) (*Claims, error) {
+func ParseToken(tokenString string, expected TokenType, secret []byte) (*Claims, error) {
 	claims := &Claims{}
-
-	token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
-		return []byte(jwtSecret), nil
-	})
-
+	token, err := jwt.ParseWithClaims(
+		tokenString,
+		claims,
+		func(t *jwt.Token) (interface{}, error) {
+			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+			}
+			return secret, nil
+		},
+		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
+		jwt.WithIssuer(Issuer),
+		jwt.WithExpirationRequired(),
+	)
 	if err != nil {
 		return nil, err
 	}
-
 	if !token.Valid {
 		return nil, errors.New("invalid token")
 	}
-
+	if claims.TokenType != expected {
+		return nil, fmt.Errorf("expected %s token, got %s", expected, claims.TokenType)
+	}
 	return claims, nil
 }
 
-func RefreshAccess(refreshToken, jwtSecret string) (string, error) {
-	claims := &Claims{}
-	token, err := jwt.ParseWithClaims(refreshToken, claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte(jwtSecret), nil
-	})
-	if err != nil || !token.Valid {
-		return "", errors.New("invalid token")
+func generate(userID uuid.UUID, version int64, typ TokenType, ttl time.Duration, secret []byte) (string, error) {
+	now := time.Now()
+	claims := &Claims{
+		UserID:       userID,
+		TokenType:    typ,
+		TokenVersion: version,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Issuer:    Issuer,
+			Subject:   userID.String(),
+			IssuedAt:  jwt.NewNumericDate(now),
+			NotBefore: jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(now.Add(ttl)),
+			ID:        uuid.NewString(),
+		},
 	}
-
-	return GenerateAccess(claims.UserID, jwtSecret)
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(secret)
 }
